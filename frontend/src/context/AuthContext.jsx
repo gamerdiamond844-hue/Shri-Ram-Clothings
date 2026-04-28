@@ -30,6 +30,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = localStorage.getItem('src_token');
     if (!token) { setLoading(false); return; }
+
+    // Timeout: if backend takes >8s (cold start), unblock the UI
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 8000);
+
     api.get('/auth/me')
       .then(res => {
         setUser(res.data);
@@ -42,7 +48,12 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('src_user');
         setUser(null);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        clearTimeout(timeout);
+        setLoading(false);
+      });
+
+    return () => clearTimeout(timeout);
   }, [fetchCart, fetchWishlist]);
 
   const login = (token, userData) => {

@@ -27,8 +27,8 @@ const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 
 function Loader() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-10 h-10 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
+      <div className="spinner" />
     </div>
   );
 }
