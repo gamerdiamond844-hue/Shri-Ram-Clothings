@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   });
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [notifCount, setNotifCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchCart = useCallback(async () => {
@@ -27,14 +28,19 @@ export function AuthProvider({ children }) {
     } catch { setWishlistCount(0); }
   }, []);
 
+  const fetchNotifCount = useCallback(async () => {
+    if (!localStorage.getItem('src_token')) return;
+    try {
+      const res = await api.get('/users/notifications/unread-count');
+      setNotifCount(res.data.count || 0);
+    } catch { setNotifCount(0); }
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('src_token');
     if (!token) { setLoading(false); return; }
 
-    // Timeout: if backend takes >8s (cold start), unblock the UI
-    const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 8000);
+    const timeout = setTimeout(() => setLoading(false), 8000);
 
     api.get('/auth/me')
       .then(res => {
@@ -42,19 +48,24 @@ export function AuthProvider({ children }) {
         localStorage.setItem('src_user', JSON.stringify(res.data));
         fetchCart();
         fetchWishlist();
+        fetchNotifCount();
       })
       .catch(() => {
         localStorage.removeItem('src_token');
         localStorage.removeItem('src_user');
         setUser(null);
       })
-      .finally(() => {
-        clearTimeout(timeout);
-        setLoading(false);
-      });
+      .finally(() => { clearTimeout(timeout); setLoading(false); });
 
     return () => clearTimeout(timeout);
-  }, [fetchCart, fetchWishlist]);
+  }, [fetchCart, fetchWishlist, fetchNotifCount]);
+
+  // Poll unread count every 30 seconds when logged in
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(fetchNotifCount, 30000);
+    return () => clearInterval(interval);
+  }, [user, fetchNotifCount]);
 
   const login = (token, userData) => {
     localStorage.setItem('src_token', token);
@@ -62,6 +73,7 @@ export function AuthProvider({ children }) {
     setUser(userData);
     fetchCart();
     fetchWishlist();
+    fetchNotifCount();
   };
 
   const logout = () => {
@@ -70,10 +82,11 @@ export function AuthProvider({ children }) {
     setUser(null);
     setCartCount(0);
     setWishlistCount(0);
+    setNotifCount(0);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, cartCount, fetchCart, wishlistCount, fetchWishlist }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, cartCount, fetchCart, wishlistCount, fetchWishlist, notifCount, setNotifCount, fetchNotifCount }}>
       {children}
     </AuthContext.Provider>
   );

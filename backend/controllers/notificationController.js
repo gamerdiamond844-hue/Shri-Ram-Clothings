@@ -214,6 +214,84 @@ const sendPushToUser = async (userId, payload) => {
   } catch {}
 };
 
+// ── Admin: Send notification to all or specific user ──────────────────────
+const sendNotification = async (req, res) => {
+  const { title, message, redirect_url, image_url, target, user_id } = req.body;
+  if (!title || !message) return res.status(400).json({ message: 'Title and message required' });
+  try {
+    let users = [];
+    if (target === 'all') {
+      const r = await pool.query(`SELECT id FROM src_users WHERE role != 'admin' AND is_banned = FALSE`);
+      users = r.rows;
+    } else if (target === 'specific' && user_id) {
+      users = [{ id: parseInt(user_id) }];
+    } else {
+      return res.status(400).json({ message: 'Invalid target' });
+    }
+
+    const fullMessage = redirect_url && redirect_url !== '/'
+      ? `${message}`
+      : message;
+
+    // Insert in-app notifications
+    for (const u of users) {
+      await pool.query(
+        `INSERT INTO src_notifications (user_id, message, type) VALUES ($1, $2, 'admin')`,
+        [u.id, fullMessage]
+      );
+    }
+
+    // Send push notifications
+    const pushPayload = {
+      title,
+      body: message,
+      icon: image_url || '/logo.jpg',
+      badge: '/logo.jpg',
+      image: image_url || undefined,
+      data: { url: redirect_url || '/' },
+      tag: `admin-${Date.now()}`,
+    };
+
+    let pushSent = 0;
+    if (target === 'all') {
+      const subs = await pool.query('SELECT * FROM src_push_subscriptions');
+      for (const sub of subs.rows) {
+        const subscription = { endpoint: sub.endpoint, keys: typeof sub.keys === 'string' ? JSON.parse(sub.keys) : sub.keys };
+        const ok = await sendPush(subscription, pushPayload);
+        if (ok) pushSent++;
+      }
+    } else {
+      const subs = await pool.query('SELECT * FROM src_push_subscriptions WHERE user_id=$1', [user_id]);
+      for (const sub of subs.rows) {
+        const subscription = { endpoint: sub.endpoint, keys: typeof sub.keys === 'string' ? JSON.parse(sub.keys) : sub.keys };
+        const ok = await sendPush(subscription, pushPayload);
+        if (ok) pushSent++;
+      }
+    }
+
+    res.json({
+      message: `Notification sent to ${users.length} user(s), ${pushSent} push delivered`,
+      inApp: users.length,
+      push: pushSent,
+    });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// ── Admin: Search users for targeting ──────────────────────────────────────
+const searchUsersForNotif = async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.length < 2) return res.json([]);
+  try {
+    const r = await pool.query(
+      `SELECT id, name, email, avatar_url FROM src_users
+       WHERE (name ILIKE $1 OR email ILIKE $1) AND role != 'admin' AND is_banned = FALSE
+       LIMIT 8`,
+      [`%${q}%`]
+    );
+    res.json(r.rows);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
 // ── Admin: Request push permission from all non-subscribed users ─────────────
 const requestPushFromUsers = async (req, res) => {
   try {
@@ -238,4 +316,5 @@ module.exports = {
   getVapidKey, subscribe, unsubscribe,
   getCampaigns, createCampaign, sendCampaign, deleteCampaign, getNotifStats,
   sendCartReminders, sendPushToUser, requestPushFromUsers,
+  sendNotification, searchUsersForNotif,
 };

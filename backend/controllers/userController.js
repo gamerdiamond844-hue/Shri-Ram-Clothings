@@ -88,20 +88,39 @@ const deleteAddress = async (req, res) => {
 // ── Notifications ─────────────────────────────────────────────────────────────
 const getNotifications = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM src_notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50', [req.user.id]);
+    const result = await pool.query(
+      'SELECT * FROM src_notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50',
+      [req.user.id]
+    );
     res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const getUnreadCount = async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT COUNT(*) FROM src_notifications WHERE user_id=$1 AND is_read=FALSE',
+      [req.user.id]
+    );
+    res.json({ count: parseInt(result.rows[0].count) });
+  } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
 const markNotificationsRead = async (req, res) => {
   try {
     await pool.query('UPDATE src_notifications SET is_read=TRUE WHERE user_id=$1', [req.user.id]);
     res.json({ message: 'Marked as read' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+  } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
-module.exports = { getWishlist, toggleWishlist, getAddresses, addAddress, updateAddress, deleteAddress, getNotifications, markNotificationsRead };
+const markOneRead = async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE src_notifications SET is_read=TRUE WHERE id=$1 AND user_id=$2',
+      [req.params.id, req.user.id]
+    );
+    res.json({ message: 'Marked as read' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+module.exports = { getWishlist, toggleWishlist, getAddresses, addAddress, updateAddress, deleteAddress, getNotifications, getUnreadCount, markNotificationsRead, markOneRead };

@@ -1,18 +1,109 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ShoppingCart, Search, Menu, X, User, LogOut, Package, LayoutDashboard, ChevronDown, Heart } from 'lucide-react';
+import { ShoppingCart, Search, Menu, X, User, LogOut, Package, LayoutDashboard, ChevronDown, Heart, Bell } from 'lucide-react';
+import api from '../utils/api';
+import toast from 'react-hot-toast';
+
+function NotifDropdown({ onClose }) {
+  const { notifCount, setNotifCount, fetchNotifCount } = useAuth();
+  const [notifs, setNotifs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const ref = useRef(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/users/notifications');
+      setNotifs(res.data);
+      // Mark all read
+      await api.put('/users/notifications/read');
+      setNotifCount(0);
+    } catch {} finally { setLoading(false); }
+  }, [setNotifCount]);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, [onClose]);
+
+  const handleClick = async (n) => {
+    if (!n.is_read) {
+      await api.put(`/users/notifications/${n.id}/read`).catch(() => {});
+      setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
+    }
+    onClose();
+  };
+
+  return (
+    <div ref={ref} className="fade-in" style={{
+      position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+      width: 340, maxHeight: 440, background: '#fff',
+      borderRadius: 14, boxShadow: '0 12px 40px rgba(0,0,0,0.14)',
+      border: '1px solid #f3f4f6', zIndex: 300, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+    }}>
+      {/* Header */}
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Notifications</span>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}><X size={16} /></button>
+      </div>
+
+      {/* List */}
+      <div style={{ overflowY: 'auto', flex: 1 }}>
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} style={{ padding: '12px 16px', borderBottom: '1px solid #f9fafb' }}>
+              <div className="skeleton" style={{ height: 14, borderRadius: 6, marginBottom: 6 }} />
+              <div className="skeleton" style={{ height: 11, borderRadius: 6, width: '60%' }} />
+            </div>
+          ))
+        ) : notifs.length === 0 ? (
+          <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+            <Bell size={28} style={{ margin: '0 auto 10px', color: '#e5e7eb' }} />
+            <p style={{ fontSize: 13, color: '#9ca3af' }}>No notifications yet</p>
+          </div>
+        ) : notifs.map(n => (
+          <div key={n.id} onClick={() => handleClick(n)}
+            style={{ padding: '12px 16px', borderBottom: '1px solid #f9fafb', cursor: 'pointer', background: n.is_read ? '#fff' : '#fff7ed', transition: 'background 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+            onMouseLeave={e => e.currentTarget.style.background = n.is_read ? '#fff' : '#fff7ed'}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.is_read ? 'transparent' : '#f97316', flexShrink: 0, marginTop: 5 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.5, marginBottom: 3 }}>{n.message}</p>
+                <p style={{ fontSize: 11, color: '#9ca3af' }}>{new Date(n.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding: '10px 16px', borderTop: '1px solid #f3f4f6', flexShrink: 0 }}>
+        <Link to="/profile?tab=Notifications" onClick={onClose}
+          style={{ fontSize: 12, color: '#f97316', fontWeight: 600, textDecoration: 'none' }}>
+          View all in Profile →
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 export default function Navbar() {
-  const { user, logout, cartCount, wishlistCount } = useAuth();
+  const { user, logout, cartCount, wishlistCount, notifCount } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropOpen, setDropOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQ, setSearchQ] = useState('');
   const dropRef = useRef(null);
+  const notifRef = useRef(null);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 4);
@@ -21,12 +112,14 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    const fn = (e) => { if (dropRef.current && !dropRef.current.contains(e.target)) setDropOpen(false); };
+    const fn = (e) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) setDropOpen(false);
+    };
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
-  useEffect(() => { setMenuOpen(false); setDropOpen(false); setSearchOpen(false); }, [pathname]);
+  useEffect(() => { setMenuOpen(false); setDropOpen(false); setNotifOpen(false); setSearchOpen(false); }, [pathname]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -50,7 +143,6 @@ export default function Navbar() {
         🎉 Free Shipping on orders above ₹999 &nbsp;·&nbsp; Use code <strong style={{ color: '#fb923c' }}>WELCOME10</strong> for 10% off
       </div>
 
-      {/* Main nav */}
       <nav style={{ background: scrolled ? 'rgba(255,255,255,0.95)' : '#fff', backdropFilter: scrolled ? 'blur(12px)' : 'none', borderBottom: '1px solid #f3f4f6', boxShadow: scrolled ? '0 1px 12px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.2s' }}>
         <div className="wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
 
@@ -63,13 +155,11 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop nav - hidden on mobile */}
+          {/* Desktop nav */}
           <div className="hide-mobile" style={{ alignItems: 'center', gap: 28 }}>
             <Link to="/" style={{ fontSize: 13, fontWeight: 500, color: pathname === '/' ? '#f97316' : '#374151', textDecoration: 'none' }}>Home</Link>
-
-            {/* Shop dropdown */}
             <div style={{ position: 'relative' }}
-            onMouseEnter={e => { const dd = e.currentTarget.querySelector('.shop-dd'); dd.style.opacity = '1'; dd.style.visibility = 'visible'; }}
+              onMouseEnter={e => { const dd = e.currentTarget.querySelector('.shop-dd'); dd.style.opacity = '1'; dd.style.visibility = 'visible'; }}
               onMouseLeave={e => { const dd = e.currentTarget.querySelector('.shop-dd'); dd.style.opacity = '0'; dd.style.visibility = 'hidden'; }}>
               <button style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, color: '#374151', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}>
                 Shop <ChevronDown size={13} />
@@ -82,7 +172,6 @@ export default function Navbar() {
                 ))}
               </div>
             </div>
-
             <Link to="/shop?featured=true" style={{ fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none' }}>New Arrivals</Link>
           </div>
 
@@ -92,6 +181,19 @@ export default function Navbar() {
 
             {user ? (
               <>
+                {/* Notification Bell */}
+                <div ref={notifRef} style={{ position: 'relative' }}>
+                  <button onClick={() => setNotifOpen(o => !o)} style={iconBtn}>
+                    <Bell size={18} />
+                    {notifCount > 0 && (
+                      <span style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                        {notifCount > 9 ? '9+' : notifCount}
+                      </span>
+                    )}
+                  </button>
+                  {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} />}
+                </div>
+
                 <Link to="/wishlist" style={{ ...iconBtn }}>
                   <Heart size={18} />
                   {wishlistCount > 0 && <span style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>{wishlistCount > 9 ? '9+' : wishlistCount}</span>}
@@ -136,7 +238,6 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Hamburger - mobile only */}
             <button onClick={() => setMenuOpen(m => !m)} className="hide-desktop" style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 8, color: '#374151', marginLeft: 4 }}>
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -176,6 +277,10 @@ export default function Navbar() {
                   <Link to="/wishlist" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', fontSize: 14, color: '#374151', textDecoration: 'none', borderRadius: 8 }}>
                     <span>Wishlist</span>
                     {wishlistCount > 0 && <span style={{ background: '#ef4444', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 10 }}>{wishlistCount}</span>}
+                  </Link>
+                  <Link to="/profile?tab=Notifications" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', fontSize: 14, color: '#374151', textDecoration: 'none', borderRadius: 8 }}>
+                    <span>Notifications</span>
+                    {notifCount > 0 && <span style={{ background: '#ef4444', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 10 }}>{notifCount}</span>}
                   </Link>
                   <Link to="/orders" style={{ display: 'block', padding: '10px 12px', fontSize: 14, color: '#374151', textDecoration: 'none', borderRadius: 8 }}>My Orders</Link>
                   <Link to="/profile" style={{ display: 'block', padding: '10px 12px', fontSize: 14, color: '#374151', textDecoration: 'none', borderRadius: 8 }}>Profile</Link>
