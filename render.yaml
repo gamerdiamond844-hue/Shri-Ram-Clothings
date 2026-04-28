@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: shriram-clothings-backend
+    name: shri-ram-clothings
     runtime: node
     rootDir: backend
     buildCommand: npm install
