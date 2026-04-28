@@ -6,16 +6,19 @@ const { initDB } = require('./config/db');
 const app = express();
 
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
+  process.env.FRONTEND_URL,
   'http://localhost:5173',
   'http://localhost:3000',
-];
+].filter(Boolean);
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin) || /\.(vercel|onrender|ngrok)\.app$/.test(origin))
-      return cb(null, true);
-    process.env.NODE_ENV !== 'production' ? cb(null, true) : cb(new Error('CORS blocked'));
+    if (!origin) return cb(null, true); // allow server-to-server / curl
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    if (/\.vercel\.app$/.test(origin)) return cb(null, true);
+    if (/\.onrender\.com$/.test(origin)) return cb(null, true);
+    if (process.env.NODE_ENV !== 'production') return cb(null, true);
+    return cb(new Error('CORS blocked: ' + origin));
   },
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
