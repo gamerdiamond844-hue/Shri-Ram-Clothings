@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Ban, Trash2, Eye, Download, Send, X, ShieldCheck, ShoppingBag, Heart, MapPin, Package, Chrome } from 'lucide-react';
+import { Search, Ban, Trash2, Eye, Download, Send, X, ShieldCheck, ShoppingBag, Heart, MapPin, Package, Globe } from 'lucide-react';
 import api, { downloadFile } from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -185,7 +185,7 @@ export default function AdminUsers() {
                     <td style={{ padding: '10px 14px' }}>
                       {u.auth_provider === 'google'
                         ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 100, background: '#eff6ff', color: '#1d4ed8' }}>
-                            <Chrome size={10} /> Google
+                            <Globe size={10} /> Google
                           </span>
                         : <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 100, background: '#f3f4f6', color: '#6b7280' }}>Email</span>
                       }
