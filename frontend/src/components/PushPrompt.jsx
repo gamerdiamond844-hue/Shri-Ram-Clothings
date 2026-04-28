@@ -9,12 +9,14 @@ export default function PushPrompt() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    // Wait until support is detected (not null), user is logged in, not denied, not subscribed
+    if (supported === null) return;
     if (!user || !supported || permission === 'denied' || subscribed) return;
     const t = setTimeout(() => setVisible(true), 5000);
     return () => clearTimeout(t);
   }, [user, supported, permission, subscribed]);
 
-  // Auto-close on success
+  // Auto-close 3s after success
   useEffect(() => {
     if (subscribed && visible) {
       const t = setTimeout(() => setVisible(false), 3000);
@@ -22,7 +24,8 @@ export default function PushPrompt() {
     }
   }, [subscribed, visible]);
 
-  if (!visible || !user || !supported) return null;
+  // Don't render until support is known and user is logged in
+  if (supported === null || !visible || !user) return null;
 
   return (
     <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, width: 'calc(100% - 32px)', maxWidth: 400 }} className="fade-up">

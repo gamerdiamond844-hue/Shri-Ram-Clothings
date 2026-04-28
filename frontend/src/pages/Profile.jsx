@@ -25,12 +25,22 @@ const blurInp  = (e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style
 function PushToggleCard() {
   const { supported, permission, subscribed, loading, error, enableNotifications, disableNotifications } = usePushNotifications();
 
+  // Still detecting browser support
+  if (supported === null) return (
+    <div style={{ background: '#f9fafb', borderRadius: 16, border: '1px solid #f3f4f6', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2, flexShrink: 0 }} />
+      <p style={{ fontSize: 14, color: '#9ca3af' }}>Checking notification support...</p>
+    </div>
+  );
+
   if (!supported) return (
     <div style={{ background: '#f9fafb', borderRadius: 16, border: '1px solid #f3f4f6', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
-      <BellOff size={22} color="#9ca3af" />
+      <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <BellOff size={22} color="#9ca3af" />
+      </div>
       <div>
-        <p style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>Push Notifications Not Supported</p>
-        <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Your browser does not support push notifications. Try Chrome or Firefox.</p>
+        <p style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 2 }}>Push Notifications Not Available</p>
+        <p style={{ fontSize: 12, color: '#9ca3af', lineHeight: 1.5 }}>Your browser does not support push notifications. Please use <strong>Chrome</strong>, <strong>Firefox</strong> or <strong>Edge</strong> on desktop or Android for this feature.</p>
       </div>
     </div>
   );
