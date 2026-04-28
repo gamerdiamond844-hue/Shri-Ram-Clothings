@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { User, MapPin, Lock, Bell, Plus, Pencil, Trash2, Check, Camera } from 'lucide-react';
+import { User, MapPin, Lock, Bell, Plus, Pencil, Trash2, Check, Camera, BellOff, BellRing } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -20,6 +21,59 @@ const inp = {
 
 const focusInp = (e) => { e.target.style.borderColor = '#f97316'; e.target.style.boxShadow = '0 0 0 3px rgba(249,115,22,0.1)'; };
 const blurInp  = (e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; };
+
+function PushToggleCard() {
+  const { supported, permission, subscribed, loading, error, enableNotifications, disableNotifications } = usePushNotifications();
+
+  if (!supported) return (
+    <div style={{ background: '#f9fafb', borderRadius: 16, border: '1px solid #f3f4f6', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <BellOff size={22} color="#9ca3af" />
+      <div>
+        <p style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>Push Notifications Not Supported</p>
+        <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Your browser does not support push notifications. Try Chrome or Firefox.</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 16, border: `1.5px solid ${subscribed ? '#bbf7d0' : '#f3f4f6'}`, padding: '20px 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: subscribed ? '#f0fdf4' : '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {subscribed ? <BellRing size={22} color="#16a34a" /> : <Bell size={22} color="#f97316" />}
+          </div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 2 }}>Push Notifications</p>
+            <p style={{ fontSize: 12, color: '#6b7280' }}>
+              {subscribed ? '✅ Enabled — you will receive alerts for orders, sales and cart reminders.'
+                : permission === 'denied' ? '🚫 Blocked by browser. Click the 🔒 icon in address bar → Allow Notifications.'
+                : 'Get notified about new arrivals, flash sales and order updates.'}
+            </p>
+            {error && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{error}</p>}
+          </div>
+        </div>
+
+        <button
+          onClick={subscribed ? disableNotifications : enableNotifications}
+          disabled={loading || permission === 'denied'}
+          style={{
+            padding: '10px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600,
+            cursor: (loading || permission === 'denied') ? 'not-allowed' : 'pointer',
+            background: subscribed ? '#fef2f2' : '#f97316',
+            color: subscribed ? '#ef4444' : '#fff',
+            opacity: loading ? 0.7 : 1,
+            display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0,
+            transition: 'all 0.15s',
+          }}>
+          {loading
+            ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />Please wait...</>
+            : subscribed ? <><BellOff size={14} />Turn Off</> : <><Bell size={14} />Enable Now</>
+          }
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function Profile() {
   const { user, login } = useAuth();
@@ -353,30 +407,34 @@ export default function Profile() {
 
         {/* ── Notifications Tab ── */}
         {tab === 'Notifications' && (
-          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Bell size={17} color="#f97316" />
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Notifications</h2>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {notifications.length ? (
-              <div>
-                {notifications.map(n => (
-                  <div key={n.id} style={{ padding: '14px 20px', borderBottom: '1px solid #f9fafb', background: n.is_read ? '#fff' : '#fff7ed' }}>
-                    <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{n.message}</p>
-                    <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
-                      {new Date(n.created_at).toLocaleString('en-IN')}
-                    </p>
-                  </div>
-                ))}
+            {/* Push Notification Toggle Card */}
+            <PushToggleCard />
+
+            {/* In-app notifications */}
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Bell size={17} color="#f97316" />
+                <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Recent Notifications</h2>
               </div>
-            ) : (
-              <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-                <Bell size={32} style={{ margin: '0 auto 12px', color: '#e5e7eb' }} />
-                <p style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>No notifications yet</p>
-                <p style={{ fontSize: 13, color: '#9ca3af' }}>Order updates and alerts will appear here</p>
-              </div>
-            )}
+              {notifications.length ? (
+                <div>
+                  {notifications.map(n => (
+                    <div key={n.id} style={{ padding: '14px 20px', borderBottom: '1px solid #f9fafb', background: n.is_read ? '#fff' : '#fff7ed' }}>
+                      <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{n.message}</p>
+                      <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{new Date(n.created_at).toLocaleString('en-IN')}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+                  <Bell size={32} style={{ margin: '0 auto 12px', color: '#e5e7eb' }} />
+                  <p style={{ fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 4 }}>No notifications yet</p>
+                  <p style={{ fontSize: 13, color: '#9ca3af' }}>Order updates and alerts will appear here</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

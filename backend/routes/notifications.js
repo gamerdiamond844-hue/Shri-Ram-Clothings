@@ -23,5 +23,6 @@ router.get('/admin/campaigns',       ...guard, n.getCampaigns);
 router.post('/admin/campaigns',      ...guard, n.createCampaign);
 router.post('/admin/campaigns/:id/send', ...guard, n.sendCampaign);
 router.delete('/admin/campaigns/:id',    ...guard, n.deleteCampaign);
+router.post('/admin/request-push',   ...guard, n.requestPushFromUsers);
 
 module.exports = router;

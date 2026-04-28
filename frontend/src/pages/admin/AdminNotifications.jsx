@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Send, Trash2, Plus, X, Users, BarChart2 } from 'lucide-react';
+import { Bell, Send, Trash2, Plus, X, Users, BellRing } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -20,6 +20,7 @@ export default function AdminNotifications() {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(null);
+  const [requesting, setRequesting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -67,6 +68,16 @@ export default function AdminNotifications() {
     catch { toast.error('Failed'); }
   };
 
+  const handleRequestPush = async () => {
+    if (!confirm('Send an in-app notification to ALL users asking them to enable push notifications?')) return;
+    setRequesting(true);
+    try {
+      const res = await api.post('/notifications/admin/request-push');
+      toast.success(`🔔 Push request sent to ${res.data.sent} users!`);
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    finally { setRequesting(false); }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -90,6 +101,26 @@ export default function AdminNotifications() {
           ))}
         </div>
       )}
+
+      {/* Request Push from Users card */}
+      <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e0e7ff', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, background: '#eff6ff', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <BellRing size={20} color="#3b82f6" />
+          </div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 2 }}>Request Push Permission from Users</p>
+            <p style={{ fontSize: 12, color: '#6b7280' }}>Send an in-app notification to all users asking them to enable push notifications.</p>
+          </div>
+        </div>
+        <button onClick={handleRequestPush} disabled={requesting}
+          style={{ padding: '9px 18px', borderRadius: 10, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 13, fontWeight: 600, cursor: requesting ? 'not-allowed' : 'pointer', opacity: requesting ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+          {requesting
+            ? <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} />Sending...</>
+            : <><BellRing size={14} />Request from Users</>
+          }
+        </button>
+      </div>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -134,7 +165,6 @@ export default function AdminNotifications() {
             </div>
           </div>
 
-          {/* Preview */}
           {(form.title || form.message) && (
             <div style={{ background: '#f9fafb', borderRadius: 10, padding: '12px 14px', border: '1px solid #f3f4f6' }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Preview</p>
@@ -223,7 +253,6 @@ export default function AdminNotifications() {
         </div>
       </div>
 
-      {/* Info box */}
       <div style={{ background: '#fff7ed', borderRadius: 12, padding: '14px 16px', border: '1px solid #fed7aa', fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
         <strong>ℹ️ How it works:</strong> Cart reminders are sent automatically every 6 hours to users who have items in their cart for 48+ hours without purchasing. Max 2 reminders per user. Scheduled campaigns are sent automatically at the set time.
       </div>

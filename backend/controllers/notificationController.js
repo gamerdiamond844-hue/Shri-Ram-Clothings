@@ -214,8 +214,28 @@ const sendPushToUser = async (userId, payload) => {
   } catch {}
 };
 
+// ── Admin: Request push permission from all non-subscribed users ─────────────
+const requestPushFromUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id FROM src_users WHERE role != 'admin' AND is_banned = FALSE`
+    );
+    let sent = 0;
+    for (const user of result.rows) {
+      await pool.query(
+        `INSERT INTO src_notifications (user_id, message, type)
+         VALUES ($1, $2, 'admin')
+         ON CONFLICT DO NOTHING`,
+        [user.id, '🔔 Enable push notifications to get alerts on new arrivals, flash sales and order updates. Go to Profile → Notifications → Enable Now.']
+      );
+      sent++;
+    }
+    res.json({ message: `Push request sent to ${sent} users`, sent });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
 module.exports = {
   getVapidKey, subscribe, unsubscribe,
   getCampaigns, createCampaign, sendCampaign, deleteCampaign, getNotifStats,
-  sendCartReminders, sendPushToUser,
+  sendCartReminders, sendPushToUser, requestPushFromUsers,
 };
