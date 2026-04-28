@@ -298,6 +298,13 @@ const initDB = async () => {
       );
     `);
 
+    // ── Migrations: add columns if they don't exist ──
+    await client.query(`
+      ALTER TABLE src_users ADD COLUMN IF NOT EXISTS google_id VARCHAR(200);
+      ALTER TABLE src_users ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(20) DEFAULT 'local';
+      ALTER TABLE src_users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+    `).catch(() => {});
+
     // Seed default categories
     await client.query(`
       INSERT INTO src_categories (name, slug, sort_order) VALUES
