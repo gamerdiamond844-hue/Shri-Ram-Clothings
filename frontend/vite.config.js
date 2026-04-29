@@ -3,6 +3,15 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    // Fallback: embed Client ID at build time if env var not set on Vercel
+    'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(
+      process.env.VITE_GOOGLE_CLIENT_ID || '456044016552-1krnbgcasl42cn02sfgehcqhp3hsrvkn.apps.googleusercontent.com'
+    ),
+    'import.meta.env.VITE_API_URL': JSON.stringify(
+      process.env.VITE_API_URL || 'https://shri-ram-clothings.onrender.com/api'
+    ),
+  },
   server: {
     proxy: {
       '/api': { target: 'http://localhost:5000', changeOrigin: true },
