@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 import { ShoppingCart, Search, Menu, X, User, LogOut, Package, LayoutDashboard, ChevronDown, Heart, Bell } from 'lucide-react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -94,6 +95,7 @@ function NotifDropdown({ onClose }) {
 
 export default function Navbar() {
   const { user, logout, cartCount, wishlistCount, notifCount } = useAuth();
+  const { settings } = useSiteSettings();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -138,10 +140,10 @@ export default function Navbar() {
 
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 100 }}>
-      {/* Announcement bar */}
-      <div style={{ background: '#111827', color: '#d1d5db', textAlign: 'center', fontSize: 12, padding: '8px 16px', fontWeight: 500 }}>
-        🎉 Free Shipping on orders above ₹999 &nbsp;·&nbsp; Use code <strong style={{ color: '#fb923c' }}>WELCOME10</strong> for 10% off
-      </div>
+      {/* Announcement bar — dynamic from admin settings */}
+      <div style={{ background: '#111827', color: '#d1d5db', textAlign: 'center', fontSize: 12, padding: '8px 16px', fontWeight: 500 }}
+        dangerouslySetInnerHTML={{ __html: settings.announcement_text || '🎉 Free Shipping on orders above ₹999 &nbsp;·&nbsp; Use code <strong style="color:#fb923c">WELCOME10</strong> for 10% off' }}
+      />
 
       <nav style={{ background: scrolled ? 'rgba(255,255,255,0.95)' : '#fff', backdropFilter: scrolled ? 'blur(12px)' : 'none', borderBottom: '1px solid #f3f4f6', boxShadow: scrolled ? '0 1px 12px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.2s' }}>
         <div className="wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>

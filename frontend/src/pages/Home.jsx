@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Truck, Shield, RefreshCw, Headphones, ChevronLeft, ChevronRight, Volume2, VolumeX, ShoppingBag } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import api from '../utils/api';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 const FEATURES = [
   { icon: Truck,      title: 'Free Shipping',  desc: 'On orders above ₹999' },
@@ -32,15 +33,14 @@ function HeroBanner({ banners, settings }) {
               ✦ New Collection 2024
             </div>
             <h1 className="font-display" style={{ fontSize: 'clamp(40px, 6vw, 72px)', fontWeight: 900, color: '#fff', lineHeight: 1.05, marginBottom: 20 }}>
-              {settings.hero_heading || 'Dress Like'}<br />
-              <span className="gradient-text">{settings.hero_heading ? '' : 'Royalty'}</span>
+              <span className="gradient-text">{settings.hero_heading}</span>
             </h1>
             <p style={{ fontSize: 16, color: '#9ca3af', lineHeight: 1.7, marginBottom: 32, maxWidth: 420 }}>
-              {settings.hero_subheading || 'Premium men\'s fashion for the modern Indian man.'}
+              {settings.hero_subheading}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
               <Link to={settings.hero_cta_link || '/shop'} className="btn-orange" style={{ padding: '13px 28px', borderRadius: 12, fontSize: 14 }}>
-                {settings.hero_cta_text || 'Shop Now'} <ArrowRight size={16} />
+                {settings.hero_cta_text} <ArrowRight size={16} />
               </Link>
               <Link to="/shop?featured=true" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '13px 28px', fontSize: 14, fontWeight: 600, color: '#d1d5db', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: 12, textDecoration: 'none' }}>
                 New Arrivals
@@ -399,10 +399,10 @@ function OfferBannerSection({ section }) {
 
 // ── Main Home Component ───────────────────────────────────────────────────────
 export default function Home() {
+  const { settings } = useSiteSettings();
   const [banners, setBanners]   = useState([]);
   const [sections, setSections] = useState([]);
   const [reels, setReels]       = useState([]);
-  const [settings, setSettings] = useState({});
   const [loaded, setLoaded]     = useState(false);
 
   useEffect(() => {
@@ -410,12 +410,10 @@ export default function Home() {
       api.get('/homepage/banners').catch(() => ({ data: [] })),
       api.get('/homepage/sections').catch(() => ({ data: [] })),
       api.get('/homepage/reels').catch(() => ({ data: [] })),
-      api.get('/homepage/settings').catch(() => ({ data: {} })),
-    ]).then(([b, s, r, st]) => {
+    ]).then(([b, s, r]) => {
       setBanners(b.data || []);
       setSections(s.data || []);
       setReels(r.data || []);
-      setSettings(st.data || {});
     }).finally(() => setLoaded(true));
   }, []);
 

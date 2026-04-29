@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 const inp = { width: '100%', padding: '9px 12px', fontSize: 13, border: '1.5px solid #e5e7eb', borderRadius: 8, outline: 'none', fontFamily: 'inherit', color: '#111827', background: '#fff' };
 
@@ -16,6 +17,7 @@ const FIELDS = [
 ];
 
 export default function AdminHpSettings() {
+  const { fetchSettings } = useSiteSettings();
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -32,7 +34,9 @@ export default function AdminHpSettings() {
     setSaving(true);
     try {
       await api.put('/homepage/admin/settings', settings);
-      toast.success('Settings saved!');
+      // Refetch global settings so Navbar + Home update immediately
+      await fetchSettings();
+      toast.success('Settings saved! Changes are now live.');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save');
     } finally { setSaving(false); }

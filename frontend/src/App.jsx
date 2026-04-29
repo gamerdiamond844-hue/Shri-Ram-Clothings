@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from './context/AuthContext';
+import { SiteSettingsProvider } from './context/SiteSettingsContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -46,6 +47,7 @@ function Layout({ children, hideFooter }) {
 export default function App() {
   return (
     <AuthProvider>
+      <SiteSettingsProvider>
       <BrowserRouter>
         <ScrollToTop />
         <PushPrompt />
@@ -91,6 +93,7 @@ export default function App() {
           }}
         />
       </BrowserRouter>
+      </SiteSettingsProvider>
     </AuthProvider>
   );
 }
