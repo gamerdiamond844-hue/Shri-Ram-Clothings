@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingBag, Tag, FolderOpen, LogOut, Menu, X, Layout, MessageSquare, Bell, Users } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Tag, FolderOpen, LogOut, Menu, X, Layout, MessageSquare, Bell, Users, Truck } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminProducts from './AdminProducts';
 import AdminOrders from './AdminOrders';
+import AdminDelivery from './AdminDelivery';
 import AdminCoupons from './AdminCoupons';
 import AdminCategories from './AdminCategories';
 import AdminHomepage from './AdminHomepage';
@@ -17,6 +18,7 @@ const NAV = [
   { key: 'homepage',       label: 'Homepage',       icon: Layout },
   { key: 'products',       label: 'Products',       icon: Package },
   { key: 'orders',         label: 'Orders',         icon: ShoppingBag },
+  { key: 'delivery',       label: 'Delivery',       icon: Truck },
   { key: 'users',          label: 'Users',          icon: Users },
   { key: 'queries',        label: 'Queries',        icon: MessageSquare },
   { key: 'notifications',  label: 'Notifications',  icon: Bell },
@@ -29,6 +31,7 @@ const SECTIONS = {
   homepage:      <AdminHomepage />,
   products:      <AdminProducts />,
   orders:        <AdminOrders />,
+  delivery:      <AdminDelivery />,
   users:         <AdminUsers />,
   queries:       <AdminQueries />,
   notifications: <AdminNotifications />,

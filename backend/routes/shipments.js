@@ -11,5 +11,10 @@ router.post('/:id/cancel', auth, s.cancelOrder);
 // Admin routes
 router.post('/:id/ship', ...adminGuard, s.shipOrder);
 router.post('/:id/admin-cancel', ...adminGuard, s.adminCancelOrder);
+router.post('/sync', ...adminGuard, async (req, res) => {
+  // Fire and forget — runs in background
+  s.syncTracking().catch(() => {});
+  res.json({ message: 'Sync started' });
+});
 
 module.exports = router;
