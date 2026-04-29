@@ -312,6 +312,13 @@ const initDB = async () => {
       ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP;
       ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT;
       ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS tracking_synced_at TIMESTAMP;
+
+      ALTER TABLE src_users ADD COLUMN IF NOT EXISTS is_free_delivery BOOLEAN DEFAULT FALSE;
+      ALTER TABLE src_users ADD COLUMN IF NOT EXISTS free_delivery_expiry TIMESTAMP;
+      ALTER TABLE src_users ADD COLUMN IF NOT EXISTS free_delivery_note VARCHAR(300);
+
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS free_delivery_applied BOOLEAN DEFAULT FALSE;
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS delivery_charge DECIMAL(10,2) DEFAULT 0;
     `).catch(() => {});
 
     // Tracking logs table

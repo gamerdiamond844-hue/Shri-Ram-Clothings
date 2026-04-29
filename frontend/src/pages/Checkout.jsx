@@ -13,6 +13,7 @@ export default function Checkout() {
   const [selectedAddr, setSelectedAddr] = useState(null);
   const [showAddrForm, setShowAddrForm] = useState(false);
   const [placing, setPlacing] = useState(false);
+  const [freeDelivery, setFreeDelivery] = useState(null); // null=loading, {eligible,expiry}
   const [addrForm, setAddrForm] = useState({ full_name: user?.name || '', mobile: user?.phone || '', address: '', city: '', state: '', pincode: '', landmark: '', is_default: false });
 
   useEffect(() => {
@@ -22,7 +23,16 @@ export default function Checkout() {
       const def = r.data.find(a => a.is_default) || r.data[0];
       if (def) setSelectedAddr(def);
     }).catch(() => {});
+    // Check free delivery eligibility
+    api.get('/users/free-delivery')
+      .then(r => setFreeDelivery(r.data))
+      .catch(() => setFreeDelivery({ eligible: false }));
   }, [state, navigate]);
+
+  // Compute shipping cost
+  const isFreeDelivery = freeDelivery?.eligible || state.total >= 999;
+  const shippingCost = isFreeDelivery ? 0 : 99;
+  const finalTotal = state.total + shippingCost;
 
   const saveAddress = async (e) => {
     e.preventDefault();
@@ -39,7 +49,7 @@ export default function Checkout() {
     if (!selectedAddr) return toast.error('Please select a delivery address');
     setPlacing(true);
     try {
-      const rzpRes = await api.post('/orders/razorpay', { amount: state.total });
+      const rzpRes = await api.post('/orders/razorpay', { amount: finalTotal });
       const { razorpay_order_id, amount, key } = rzpRes.data;
       const options = {
         key, amount, currency: 'INR', name: 'Shri Ram Clothings', description: 'Order Payment',
@@ -54,7 +64,9 @@ export default function Checkout() {
               quantity: item.quantity, image_url: item.image_url,
             }));
             const res = await api.post('/orders', {
-              items: orderItems, subtotal: state.subtotal, discount_amount: state.discount, total: state.total,
+              items: orderItems, subtotal: state.subtotal, discount_amount: state.discount,
+              total: finalTotal, delivery_charge: shippingCost,
+              free_delivery_applied: freeDelivery?.eligible || false,
               coupon_code: state.coupon_code, ...selectedAddr, email: user.email,
               razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature, payment_method: 'razorpay',
@@ -156,12 +168,23 @@ export default function Checkout() {
               <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b7280' }}><span>Subtotal</span><span style={{ fontWeight: 600, color: '#111827' }}>₹{state.subtotal}</span></div>
                 {state.discount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}><span>Discount</span><span style={{ fontWeight: 600 }}>-₹{state.discount}</span></div>}
+
+                {/* Free delivery badge */}
+                {freeDelivery?.eligible && (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    🎉 <strong>Congratulations!</strong> You are eligible for FREE delivery!
+                    {freeDelivery.expiry && <span style={{ color: '#9ca3af', marginLeft: 4 }}>· Valid till {new Date(freeDelivery.expiry).toLocaleDateString('en-IN')}</span>}
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b7280' }}>
                   <span>Shipping</span>
-                  <span style={{ fontWeight: 600, color: state.total >= 999 ? '#16a34a' : '#111827' }}>{state.total >= 999 ? 'FREE' : '₹99'}</span>
+                  <span style={{ fontWeight: 600, color: isFreeDelivery ? '#16a34a' : '#111827' }}>
+                    {isFreeDelivery ? 'FREE 🎉' : '₹99'}
+                  </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15, color: '#111827', borderTop: '1px solid #f3f4f6', paddingTop: 10, marginTop: 4 }}>
-                  <span>Total</span><span>₹{state.total + (state.total >= 999 ? 0 : 99)}</span>
+                  <span>Total</span><span>₹{finalTotal}</span>
                 </div>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Ban, Trash2, Eye, Download, Send, X, ShieldCheck, ShoppingBag, Heart, MapPin, Package, Globe } from 'lucide-react';
+import { Search, Ban, Trash2, Eye, Download, Send, X, ShieldCheck, ShoppingBag, Heart, MapPin, Package, Globe, Truck } from 'lucide-react';
 import api, { downloadFile } from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -10,7 +10,7 @@ const FILTERS = [
   { key: 'active', label: 'Active' },
   { key: 'blocked', label: 'Blocked' },
   { key: 'new', label: 'New (7d)' },
-  { key: 'google', label: 'Google' },
+  { key: 'free_delivery', label: 'Free Delivery' },
 ];
 
 export default function AdminUsers() {
@@ -25,6 +25,8 @@ export default function AdminUsers() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [notifMsg, setNotifMsg] = useState('');
   const [sendingNotif, setSendingNotif] = useState(false);
+  const [savingFD, setSavingFD] = useState(false);
+  const [fdForm, setFdForm] = useState({ is_free_delivery: false, free_delivery_expiry: '', free_delivery_note: '' });
   const LIMIT = 20;
 
   const load = useCallback(async () => {
@@ -53,6 +55,11 @@ export default function AdminUsers() {
     try {
       const res = await api.get(`/admin/users/${user.id}`);
       setSelected(res.data);
+      setFdForm({
+        is_free_delivery: res.data.is_free_delivery || false,
+        free_delivery_expiry: res.data.free_delivery_expiry ? res.data.free_delivery_expiry.split('T')[0] : '',
+        free_delivery_note: res.data.free_delivery_note || '',
+      });
     } catch { toast.error('Failed to load user details'); }
     finally { setDetailLoading(false); }
   };
@@ -94,6 +101,17 @@ export default function AdminUsers() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Export failed');
     }
+  };
+
+  const saveFreeDelivery = async () => {
+    setSavingFD(true);
+    try {
+      const res = await api.put(`/admin/users/${selected.id}/free-delivery`, fdForm);
+      toast.success(fdForm.is_free_delivery ? '🎉 Free delivery enabled!' : 'Free delivery disabled');
+      setSelected(prev => ({ ...prev, ...res.data }));
+      load();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    finally { setSavingFD(false); }
   };
 
   const totalPages = Math.ceil(total / LIMIT);
@@ -335,6 +353,38 @@ export default function AdminUsers() {
                     </div>
                   </div>
                 )}
+
+                {/* Free Delivery Control */}
+                <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '12px 14px', border: '1px solid #bbf7d0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#166534', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Truck size={13} /> Free Delivery
+                    </p>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                      <span style={{ fontSize: 11, color: fdForm.is_free_delivery ? '#166534' : '#9ca3af', fontWeight: 600 }}>
+                        {fdForm.is_free_delivery ? 'Enabled' : 'Disabled'}
+                      </span>
+                      <div onClick={() => setFdForm(p => ({ ...p, is_free_delivery: !p.is_free_delivery }))}
+                        style={{ width: 36, height: 20, borderRadius: 10, background: fdForm.is_free_delivery ? '#16a34a' : '#d1d5db', position: 'relative', cursor: 'pointer', transition: 'background 0.2s', flexShrink: 0 }}>
+                        <div style={{ position: 'absolute', top: 2, left: fdForm.is_free_delivery ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                      </div>
+                    </label>
+                  </div>
+                  {fdForm.is_free_delivery && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <input type="date" value={fdForm.free_delivery_expiry}
+                        onChange={e => setFdForm(p => ({ ...p, free_delivery_expiry: e.target.value }))}
+                        style={{ ...inp, fontSize: 12 }} placeholder="Expiry date (optional)" />
+                      <input value={fdForm.free_delivery_note}
+                        onChange={e => setFdForm(p => ({ ...p, free_delivery_note: e.target.value }))}
+                        placeholder="Note (e.g. VIP customer)" style={{ ...inp, fontSize: 12 }} />
+                    </div>
+                  )}
+                  <button onClick={saveFreeDelivery} disabled={savingFD}
+                    style={{ marginTop: 8, width: '100%', padding: '7px', borderRadius: 8, border: 'none', background: fdForm.is_free_delivery ? '#16a34a' : '#6b7280', color: '#fff', fontSize: 12, fontWeight: 600, cursor: savingFD ? 'not-allowed' : 'pointer', opacity: savingFD ? 0.7 : 1 }}>
+                    {savingFD ? 'Saving...' : 'Save Free Delivery'}
+                  </button>
+                </div>
 
                 {/* Send notification */}
                 <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14 }}>

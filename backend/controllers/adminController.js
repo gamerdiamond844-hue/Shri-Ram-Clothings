@@ -441,6 +441,7 @@ const getUsers = async (req, res) => {
     if (filter === 'blocked') { conditions.push(`u.is_banned = TRUE`); }
     if (filter === 'new')     { conditions.push(`u.created_at >= NOW() - INTERVAL '7 days'`); }
     if (filter === 'google')  { conditions.push(`u.auth_provider = 'google'`); }
+    if (filter === 'free_delivery') { conditions.push(`u.is_free_delivery = TRUE`); }
 
     const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
     values.push(limit, offset);
@@ -574,6 +575,67 @@ const banUser = async (req, res) => {
     if (!result.rows.length) return res.status(404).json({ message: 'User not found' });
     await log(pool, req.user.id, result.rows[0].is_banned ? 'ban_user' : 'unban_user', 'user', req.params.id, result.rows[0].name);
     res.json(result.rows[0]);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// ── Free Delivery ───────────────────────────────────────────────────────────────────────────────────
+const setFreeDelivery = async (req, res) => {
+  const { is_free_delivery, free_delivery_expiry, free_delivery_note } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE src_users SET
+        is_free_delivery=$1,
+        free_delivery_expiry=$2,
+        free_delivery_note=$3
+       WHERE id=$4 AND role != 'admin'
+       RETURNING id, name, email, is_free_delivery, free_delivery_expiry, free_delivery_note`,
+      [!!is_free_delivery, free_delivery_expiry || null, free_delivery_note || null, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ message: 'User not found' });
+    await log(pool, req.user.id, is_free_delivery ? 'enable_free_delivery' : 'disable_free_delivery', 'user', req.params.id, result.rows[0].name);
+    // Notify user
+    if (is_free_delivery) {
+      await pool.query(
+        `INSERT INTO src_notifications (user_id, message, type) VALUES ($1,$2,'admin')`,
+        [req.params.id, `🎉 You have been granted FREE delivery on your next order${free_delivery_expiry ? ' (valid until ' + new Date(free_delivery_expiry).toLocaleDateString('en-IN') + ')' : ''}!`]
+      ).catch(() => {});
+    }
+    res.json(result.rows[0]);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const getFreeDeliveryUsers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.name, u.email, u.phone, u.avatar_url,
+        u.is_free_delivery, u.free_delivery_expiry, u.free_delivery_note,
+        COUNT(DISTINCT o.id) as total_orders,
+        COALESCE(SUM(o.total) FILTER (WHERE o.payment_status='paid'), 0) as total_spend
+       FROM src_users u
+       LEFT JOIN src_orders o ON o.user_id = u.id
+       WHERE u.is_free_delivery = TRUE AND u.role != 'admin'
+       GROUP BY u.id
+       ORDER BY u.free_delivery_expiry ASC NULLS LAST`
+    );
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// User-facing: check own free delivery status
+const checkFreeDelivery = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT is_free_delivery, free_delivery_expiry, free_delivery_note FROM src_users WHERE id=$1`,
+      [req.user.id]
+    );
+    if (!result.rows.length) return res.json({ eligible: false });
+    const u = result.rows[0];
+    const expired = u.free_delivery_expiry && new Date(u.free_delivery_expiry) < new Date();
+    res.json({
+      eligible: u.is_free_delivery && !expired,
+      expiry: u.free_delivery_expiry,
+      note: u.free_delivery_note,
+    });
   } catch (err) { res.status(500).json({ message: err.message }); }
 };
 
@@ -799,6 +861,7 @@ const getActivityLogs = async (req, res) => {
 module.exports = {
   getAnalytics, exportAnalytics,
   getStats, getUsers, getUserStats, getUserDetail, exportUsers, sendUserNotification, banUser, deleteUser,
+  setFreeDelivery, getFreeDeliveryUsers, checkFreeDelivery,
   getAdminProducts, updateProductStatus, deleteAdminProduct,
   getAdminOrders, updateOrderStatus,
   getAdminCategories, createCategory, updateCategory,
