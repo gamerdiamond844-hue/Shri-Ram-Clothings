@@ -303,7 +303,30 @@ const initDB = async () => {
       ALTER TABLE src_users ADD COLUMN IF NOT EXISTS google_id VARCHAR(200);
       ALTER TABLE src_users ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(20) DEFAULT 'local';
       ALTER TABLE src_users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS tracking_id VARCHAR(100);
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS courier_name VARCHAR(100);
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS shipment_status VARCHAR(50) DEFAULT 'pending';
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS estimated_delivery DATE;
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMP;
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP;
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT;
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS tracking_synced_at TIMESTAMP;
     `).catch(() => {});
+
+    // Tracking logs table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS src_tracking_logs (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER REFERENCES src_orders(id) ON DELETE CASCADE,
+        awb VARCHAR(100),
+        status VARCHAR(200),
+        location VARCHAR(300),
+        instructions TEXT,
+        scanned_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
 
     // Seed default categories
     await client.query(`

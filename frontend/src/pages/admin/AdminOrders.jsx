@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Truck, X } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -25,6 +25,9 @@ export default function AdminOrders() {
   const [updating, setUpdating] = useState(null);
   const LIMIT = 15;
 
+  const [shipping, setShipping] = useState(null);
+  const [cancelling, setCancelling] = useState(null);
+
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
@@ -48,6 +51,29 @@ export default function AdminOrders() {
       fetchOrders();
     } catch { toast.error('Failed'); }
     finally { setUpdating(null); }
+  };
+
+  const shipOrder = async (id) => {
+    if (!confirm('Create Delhivery shipment for this order?')) return;
+    setShipping(id);
+    try {
+      const res = await api.post(`/shipments/${id}/ship`);
+      toast.success(`🚚 Shipped! AWB: ${res.data.awb}`);
+      fetchOrders();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to ship'); }
+    finally { setShipping(null); }
+  };
+
+  const cancelOrder = async (id) => {
+    const reason = prompt('Cancellation reason:');
+    if (reason === null) return;
+    setCancelling(id);
+    try {
+      await api.post(`/shipments/${id}/admin-cancel`, { reason });
+      toast.success('Order cancelled');
+      fetchOrders();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    finally { setCancelling(null); }
   };
 
   const totalPages = Math.ceil(total / LIMIT);
@@ -119,12 +145,40 @@ export default function AdminOrders() {
                     ))}
                   </div>
 
+                  {/* Shipment info */}
+                  {o.tracking_id && (
+                    <div style={{ background: '#eff6ff', borderRadius: 8, padding: '8px 12px', fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Truck size={13} color="#3b82f6" />
+                      <span style={{ color: '#1e40af', fontWeight: 600 }}>AWB: {o.tracking_id}</span>
+                      <span style={{ color: '#6b7280' }}>· {o.courier_name}</span>
+                      {o.shipment_status && <span style={{ color: '#6b7280', textTransform: 'capitalize' }}>· {o.shipment_status}</span>}
+                    </div>
+                  )}
+
+                  {/* Ship Now button */}
+                  {!o.tracking_id && !['cancelled','delivered','refunded'].includes(o.status) && (
+                    <button onClick={() => shipOrder(o.id)} disabled={shipping === o.id}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: 'none', background: '#f97316', color: '#fff', fontSize: 13, fontWeight: 600, cursor: shipping === o.id ? 'not-allowed' : 'pointer', opacity: shipping === o.id ? 0.7 : 1 }}>
+                      {shipping === o.id
+                        ? <><div className="spinner" style={{ width: 13, height: 13, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} />Creating Shipment...</>
+                        : <><Truck size={13} />Ship Now (Delhivery)</>}
+                    </button>
+                  )}
+
                   {/* Address */}
                   <div style={{ background: '#f9fafb', borderRadius: 10, padding: '10px 14px', fontSize: 13 }}>
                     <div style={{ fontWeight: 600, color: '#374151', marginBottom: 4 }}>Delivery Address</div>
                     <div style={{ color: '#6b7280' }}>{o.address}, {o.city}, {o.state} — {o.pincode}</div>
                     {o.landmark && <div style={{ color: '#9ca3af', marginTop: 2 }}>Near: {o.landmark}</div>}
                   </div>
+
+                  {/* Cancel button */}
+                  {!['cancelled','delivered','refunded'].includes(o.status) && (
+                    <button onClick={() => cancelOrder(o.id)} disabled={cancelling === o.id}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, border: '1.5px solid #ef4444', background: '#fff', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer', alignSelf: 'flex-start' }}>
+                      <X size={12} /> Cancel Order
+                    </button>
+                  )}
 
                   {/* Status update */}
                   <div>

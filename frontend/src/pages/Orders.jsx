@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, ChevronDown, ChevronUp, ShoppingBag } from 'lucide-react';
+import { Package, ChevronDown, ChevronUp, ShoppingBag, MapPin, Truck } from 'lucide-react';
 import api from '../utils/api';
 
 const STATUS_STYLE = {
@@ -95,6 +95,21 @@ export default function Orders() {
                         <p style={{ color: '#374151' }}><strong>{order.full_name}</strong> · {order.mobile}</p>
                         <p style={{ color: '#6b7280', marginTop: 3 }}>{order.address}, {order.city}, {order.state} — {order.pincode}</p>
                         <p style={{ color: '#6b7280', marginTop: 6 }}>Payment: <span style={{ fontWeight: 600, color: order.payment_status === 'paid' ? '#16a34a' : '#d97706' }}>{order.payment_status}</span></p>
+                        {order.tracking_id && (
+                          <p style={{ color: '#6b7280', marginTop: 4 }}>Tracking: <span style={{ fontWeight: 700, color: '#f97316' }}>{order.tracking_id}</span> · {order.courier_name}</p>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <Link to={`/track-order/${order.id}`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, background: '#f97316', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                          <Truck size={14} /> Track Order
+                        </Link>
+                        {!['shipped','delivered','cancelled','refunded'].includes(order.status) && (
+                          <Link to={`/track-order/${order.id}`}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, border: '1.5px solid #ef4444', color: '#ef4444', fontSize: 13, fontWeight: 600, textDecoration: 'none', background: '#fff' }}>
+                            Cancel
+                          </Link>
+                        )}
                       </div>
                     </div>
                   )}

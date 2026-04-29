@@ -32,6 +32,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/cart', require('./routes/cart'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/shipments', require('./routes/shipments'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/homepage', require('./routes/homepage'));
@@ -56,6 +57,13 @@ initDB().then(() => {
   cron.schedule('0 */6 * * *', () => {
     console.log('⏰ Running cart reminder cron...');
     sendCartReminders();
+  });
+
+  // ── Cron: Delhivery tracking sync every 3 hours ──
+  const { syncTracking } = require('./controllers/shipmentController');
+  cron.schedule('0 */3 * * *', () => {
+    console.log('🚚 Running Delhivery tracking sync...');
+    syncTracking();
   });
 
   // ── Cron: Send scheduled campaigns every minute ──

@@ -24,6 +24,7 @@ const Wishlist      = lazy(() => import('./pages/Wishlist'));
 const Profile       = lazy(() => import('./pages/Profile'));
 const Contact       = lazy(() => import('./pages/Contact'));
 const TrackQuery    = lazy(() => import('./pages/TrackQuery'));
+const TrackOrder    = lazy(() => import('./pages/TrackOrder'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 
 function Loader() {
@@ -79,6 +80,7 @@ export default function App() {
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/track-query" element={<TrackQuery />} />
+                  <Route path="/track-order/:id" element={<ProtectedRoute><TrackOrder /></ProtectedRoute>} />
                 </Routes>
               </Layout>
             } />

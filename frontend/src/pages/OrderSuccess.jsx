@@ -1,6 +1,5 @@
-// OrderSuccess.jsx
 import { useLocation, Link } from 'react-router-dom';
-import { CheckCircle, Package, ArrowRight } from 'lucide-react';
+import { CheckCircle, Package, ArrowRight, Truck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function OrderSuccess() {
@@ -8,26 +7,48 @@ export default function OrderSuccess() {
   const order = state?.order;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-8 sm:p-12 max-w-md w-full text-center shadow-xl border border-gray-100">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle size={40} className="text-green-500" />
+    <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        style={{ background: '#fff', borderRadius: 24, padding: '40px 32px', maxWidth: 440, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.08)', border: '1px solid #f3f4f6' }}
+      >
+        <div style={{ width: 72, height: 72, background: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+          <CheckCircle size={36} color="#22c55e" />
         </div>
-        <h1 className="font-display text-2xl sm:text-3xl font-black text-gray-900 mb-2">Order Placed!</h1>
-        <p className="text-gray-500 mb-6">Thank you for shopping with Shri Ram Clothings</p>
+
+        <h1 className="font-display" style={{ fontSize: 26, fontWeight: 900, color: '#111827', marginBottom: 6 }}>Order Placed!</h1>
+        <p style={{ color: '#9ca3af', fontSize: 14, marginBottom: 24 }}>Thank you for shopping with Shri Ram Clothings</p>
+
         {order && (
-          <div className="bg-orange-50 rounded-2xl p-4 mb-6 text-left space-y-2">
-            <div className="flex justify-between text-sm"><span className="text-gray-500">Order ID</span><span className="font-bold text-gray-900">#{order.order_id}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-gray-500">Total</span><span className="font-bold text-orange-600">₹{order.total}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-gray-500">Status</span><span className="font-semibold text-green-600 capitalize">{order.status}</span></div>
+          <div style={{ background: '#fff7ed', borderRadius: 16, padding: '16px', marginBottom: 24, textAlign: 'left' }}>
+            {[
+              ['Order ID', `#${order.order_id}`],
+              ['Total', `₹${order.total}`],
+              ['Status', order.status],
+              ...(order.tracking_id ? [['Tracking ID', order.tracking_id]] : []),
+            ].map(([label, value]) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                <span style={{ color: '#9ca3af' }}>{label}</span>
+                <span style={{ fontWeight: 700, color: label === 'Tracking ID' ? '#f97316' : '#111827', textTransform: 'capitalize' }}>{value}</span>
+              </div>
+            ))}
           </div>
         )}
-        <div className="flex flex-col gap-3">
-          <Link to="/orders" className="btn-primary py-3 rounded-2xl flex items-center justify-center gap-2">
-            <Package size={18} /> Track Order
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {order && (
+            <Link to={`/track-order/${order.id}`} className="btn-orange"
+              style={{ padding: '13px', borderRadius: 14, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <Truck size={16} /> Track My Order
+            </Link>
+          )}
+          <Link to="/orders" className="btn-primary"
+            style={{ padding: '13px', borderRadius: 14, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <Package size={16} /> My Orders
           </Link>
-          <Link to="/shop" className="btn-outline py-3 rounded-2xl flex items-center justify-center gap-2">
-            Continue Shopping <ArrowRight size={18} />
+          <Link to="/shop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '13px', fontSize: 14, fontWeight: 600, color: '#374151', textDecoration: 'none', border: '1.5px solid #e5e7eb', borderRadius: 14 }}>
+            Continue Shopping <ArrowRight size={16} />
           </Link>
         </div>
       </motion.div>
