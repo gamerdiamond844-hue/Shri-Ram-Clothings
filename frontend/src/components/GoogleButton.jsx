@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
-// Google "G" SVG logo — official colors, no external dependency
 const GoogleLogo = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
     <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -15,11 +14,13 @@ const GoogleLogo = () => (
 export default function GoogleButton({ onSuccess, label = 'Continue with Google' }) {
   const [loading, setLoading] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  const isConfigured = clientId && clientId !== 'your_google_client_id_here';
+  const [gsiReady, setGsiReady] = useState(false);
+  const btnContainerRef = useRef(null);
   const callbackRef = useRef(null);
 
-  // Keep callback ref fresh so the GSI callback always has latest onSuccess
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const isConfigured = clientId && clientId !== 'your_google_client_id_here';
+
   const handleCredentialResponse = useCallback(async (response) => {
     if (!response?.credential) return;
     setLoading(true);
@@ -35,68 +36,66 @@ export default function GoogleButton({ onSuccess, label = 'Continue with Google'
 
   callbackRef.current = handleCredentialResponse;
 
-  // Initialize GSI once when clientId is available
+  // Initialize GSI and render the button
   useEffect(() => {
     if (!isConfigured) return;
-    const init = () => {
+
+    const initGSI = () => {
       if (!window.google?.accounts?.id) return;
+
       window.google.accounts.id.initialize({
         client_id: clientId,
         callback: (r) => callbackRef.current(r),
         auto_select: false,
         cancel_on_tap_outside: true,
+        ux_mode: 'popup',
       });
+
+      setGsiReady(true);
     };
+
     if (window.google?.accounts?.id) {
-      init();
+      initGSI();
     } else {
       const t = setInterval(() => {
-        if (window.google?.accounts?.id) { init(); clearInterval(t); }
-      }, 150);
+        if (window.google?.accounts?.id) {
+          initGSI();
+          clearInterval(t);
+        }
+      }, 100);
       return () => clearInterval(t);
     }
   }, [clientId, isConfigured]);
 
+  // Render the hidden GSI button (needed to trigger popup)
+  useEffect(() => {
+    if (!gsiReady || !btnContainerRef.current) return;
+    window.google.accounts.id.renderButton(btnContainerRef.current, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      text: 'continue_with',
+      shape: 'rectangular',
+      logo_alignment: 'left',
+      width: btnContainerRef.current.offsetWidth || 400,
+    });
+  }, [gsiReady]);
+
   const handleClick = () => {
     if (!isConfigured) {
-      toast.error('Google login is not configured yet. Please use email/password login.');
+      toast.error('Google login is not configured. Please use email/password login.');
       return;
     }
     if (loading) return;
-    if (window.google?.accounts?.id) {
-      window.google.accounts.id.prompt((notification) => {
-        // If One Tap is suppressed (e.g. user dismissed it), fall back to popup
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          openPopup();
-        }
-      });
-    } else {
-      openPopup();
-    }
-  };
 
-  const openPopup = () => {
-    const params = new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: window.location.origin,
-      response_type: 'token id_token',
-      scope: 'openid email profile',
-      nonce: Math.random().toString(36).slice(2),
-      prompt: 'select_account',
-    });
-    const popup = window.open(
-      `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
-      'google-login',
-      'width=500,height=600,left=200,top=100'
-    );
-    if (!popup) {
-      toast.error('Popup blocked. Please allow popups for this site.');
-      return;
+    // Click the hidden GSI button to trigger the popup
+    const gsiBtn = btnContainerRef.current?.querySelector('div[role="button"]');
+    if (gsiBtn) {
+      gsiBtn.click();
+    } else if (window.google?.accounts?.id) {
+      // Fallback: use One Tap prompt
+      window.google.accounts.id.prompt();
     }
-    setLoading(true);
-    const timer = setInterval(() => {
-      if (popup.closed) { clearInterval(timer); setLoading(false); }
-    }, 500);
   };
 
   const btnStyle = {
@@ -118,28 +117,39 @@ export default function GoogleButton({ onSuccess, label = 'Continue with Google'
     boxShadow: hovered ? '0 1px 6px rgba(60,64,67,0.15)' : '0 1px 3px rgba(60,64,67,0.08)',
     opacity: loading ? 0.75 : 1,
     letterSpacing: '0.01em',
+    position: 'relative',
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={btnStyle}
-      disabled={loading}
-    >
-      {loading ? (
-        <>
-          <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2, flexShrink: 0 }} />
-          <span>Connecting to Google...</span>
-        </>
-      ) : (
-        <>
-          <GoogleLogo />
-          <span>{label}</span>
-        </>
-      )}
-    </button>
+    <div style={{ position: 'relative' }}>
+      {/* Our custom styled button */}
+      <button
+        type="button"
+        onClick={handleClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={btnStyle}
+        disabled={loading}
+      >
+        {loading ? (
+          <>
+            <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2, flexShrink: 0 }} />
+            <span>Connecting to Google...</span>
+          </>
+        ) : (
+          <>
+            <GoogleLogo />
+            <span>{label}</span>
+          </>
+        )}
+      </button>
+
+      {/* Hidden GSI rendered button — used to trigger the actual Google popup */}
+      <div
+        ref={btnContainerRef}
+        style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden' }}
+        aria-hidden="true"
+      />
+    </div>
   );
 }
