@@ -16,6 +16,19 @@ const FIELDS = [
   { key: 'seo_keywords',      label: 'SEO Keywords',        placeholder: 'e.g. men clothing, t-shirts, jeans', type: 'text' },
 ];
 
+const FOOTER_FIELDS = [
+  { key: 'footer_description', label: 'Brand Description',   placeholder: "Premium Men's Fashion Brand...",        type: 'textarea' },
+  { key: 'footer_phone',       label: 'Phone Number',        placeholder: '+91 98765 43210',                       type: 'text' },
+  { key: 'footer_email',       label: 'Support Email',       placeholder: 'support@shriramclothings.com',          type: 'text' },
+  { key: 'footer_whatsapp',    label: 'WhatsApp Number',     placeholder: '919876543210 (with country code)',       type: 'text' },
+  { key: 'footer_address',     label: 'Store Address',       placeholder: 'Silver Square Link, Bharuch...',        type: 'textarea' },
+  { key: 'footer_maps_url',    label: 'Google Maps URL',     placeholder: 'https://maps.google.com/?q=...',        type: 'text' },
+  { key: 'footer_hours',       label: 'Working Hours',       placeholder: 'Mon – Sat: 9:00 AM to 8:00 PM',         type: 'text' },
+  { key: 'footer_instagram',   label: 'Instagram URL',       placeholder: 'https://instagram.com/...',             type: 'text' },
+  { key: 'footer_facebook',    label: 'Facebook URL',        placeholder: 'https://facebook.com/...',              type: 'text' },
+  { key: 'footer_youtube',     label: 'YouTube URL',         placeholder: 'https://youtube.com/...',               type: 'text' },
+];
+
 export default function AdminHpSettings() {
   const { fetchSettings } = useSiteSettings();
   const [settings, setSettings] = useState({});
@@ -99,6 +112,40 @@ export default function AdminHpSettings() {
                   onChange={e => setSettings(p => ({ ...p, [f.key]: e.target.value }))}
                   placeholder={f.placeholder}
                   rows={3}
+                  style={{ ...inp, resize: 'none' }}
+                />
+              ) : (
+                <input
+                  value={settings[f.key] || ''}
+                  onChange={e => setSettings(p => ({ ...p, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                  style={inp}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <button type="submit" disabled={saving} className="btn-orange"
+        style={{ padding: '12px 32px', borderRadius: 12, fontSize: 14, alignSelf: 'flex-start' }}>
+        {saving ? 'Saving...' : '💾 Save All Settings'}
+      </button>
+
+      {/* Footer Settings */}
+      <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f3f4f6', padding: 20 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}>📄 Footer Settings</div>
+        <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 16 }}>Controls footer contact info, address, social links — updates live on frontend</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {FOOTER_FIELDS.map(f => (
+            <div key={f.key}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 5 }}>{f.label}</label>
+              {f.type === 'textarea' ? (
+                <textarea
+                  value={settings[f.key] || ''}
+                  onChange={e => setSettings(p => ({ ...p, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                  rows={2}
                   style={{ ...inp, resize: 'none' }}
                 />
               ) : (

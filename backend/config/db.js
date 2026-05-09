@@ -335,6 +335,51 @@ const initDB = async () => {
       );
     `);
 
+    // Newsletter subscribers table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS src_newsletter_subscribers (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(150) UNIQUE NOT NULL,
+        name VARCHAR(100),
+        subscribed_at TIMESTAMP DEFAULT NOW(),
+        unsubscribed_at TIMESTAMP,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_newsletter_email ON src_newsletter_subscribers(email);
+      CREATE INDEX IF NOT EXISTS idx_newsletter_active ON src_newsletter_subscribers(is_active);
+    `);
+
+    // Footer settings table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS src_footer_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT,
+        type VARCHAR(20) DEFAULT 'text',
+        updated_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    // Seed footer settings with defaults
+    await client.query(`
+      INSERT INTO src_footer_settings (key, value, type) VALUES
+        ('store_name', 'Shri Ram Clothings', 'text'),
+        ('store_address', 'Silver Square Link, Near Sravan Choukdi, Bharuch, Gujarat – 392001, India', 'text'),
+        ('phone_number', '+91 9876543210', 'text'),
+        ('whatsapp_number', '919876543210', 'text'),
+        ('support_email', 'support@shriramclothings.com', 'text'),
+        ('working_hours', 'Mon – Sat: 9:00 AM to 8:00 PM', 'text'),
+        ('brand_description', 'Premium Men''s Fashion Brand delivering trendy and high-quality clothing across India.', 'text'),
+        ('google_maps_url', 'https://maps.google.com/?q=Bharuch,Gujarat,India', 'url'),
+        ('instagram_url', '#', 'url'),
+        ('facebook_url', '#', 'url'),
+        ('youtube_url', '#', 'url'),
+        ('copyright_text', '© 2026 Shri Ram Clothings. All Rights Reserved.', 'text'),
+        ('tagline', 'Designed for Premium Men''s Fashion Experience', 'text')
+      ON CONFLICT (key) DO NOTHING;
+    `);
+
     // Seed default categories
     await client.query(`
       INSERT INTO src_categories (name, slug, sort_order) VALUES
