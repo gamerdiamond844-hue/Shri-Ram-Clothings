@@ -1,14 +1,18 @@
 import { useEffect } from 'react';
 
-export const BRAND   = 'Shree Ram Clothings';
-export const COMPANY = 'Dinesh Global Enterprises Pvt Ltd';
-export const EMAIL   = 'legal@shriramclothings.com';
-export const SUPPORT = 'support@shriramclothings.com';
-export const ADDRESS = 'Silver Square Link, Near Sravan Choukdi, Bharuch, Gujarat – 392001, India';
-export const PHONE   = '+91 7984626447';
-export const WEBSITE = 'https://shriramclothings.com';
-export const GRIEVANCE_OFFICER = 'Dinesh Rawal, Dinesh Global Enterprises Pvt Ltd';
+export const BRAND    = 'Shri Ram Clothings';
+export const OPERATOR = 'Dinesh Global Enterprise Private Limited';
+export const COMPANY  = OPERATOR; // alias for backward compat
+export const EMAIL    = 'legal@shriramclothings.com';
+export const SUPPORT  = 'support@shriramclothings.com';
+export const ADDRESS  = 'Silver Square Link, Near Sravan Choukdi, Bharuch, Gujarat – 392001, India';
+export const PHONE    = '+91 7984626447';
+export const WEBSITE  = 'https://shriramclothings.com';
+export const GRIEVANCE_OFFICER = 'Dinesh Rawal';
 export const GRIEVANCE_EMAIL   = 'grievance@shriramclothings.com';
+
+// Legal identity line used across all policy pages
+export const LEGAL_IDENTITY = `${BRAND} is an independent men's fashion and ecommerce brand. The ecommerce platform, infrastructure, technical operations, and platform management services are operated and supported by ${OPERATOR}. ${OPERATOR} acts solely as the managing, operational, technology, and support partner for ${BRAND}. The brand identity, business operations, and associated intellectual assets of ${BRAND} remain independently associated with ${BRAND}.`;
 
 export default function LegalPage({ title, lastUpdated, children }) {
   useEffect(() => {
@@ -27,7 +31,9 @@ export default function LegalPage({ title, lastUpdated, children }) {
           </div>
           <h1 className="font-display" style={{ fontSize: 'clamp(24px, 4vw, 38px)', fontWeight: 900, color: '#fff', marginBottom: 12, lineHeight: 1.15 }}>{title}</h1>
           <p style={{ fontSize: 13, color: '#64748b' }}>
-            <strong style={{ color: '#94a3b8' }}>{BRAND}</strong> is owned and operated by <strong style={{ color: '#94a3b8' }}>{COMPANY}</strong>
+            <strong style={{ color: '#94a3b8' }}>{BRAND}</strong>
+            {' '}&nbsp;·&nbsp; Platform managed & operated by{' '}
+            <strong style={{ color: '#94a3b8' }}>{OPERATOR}</strong>
             {lastUpdated && <> &nbsp;·&nbsp; Last Updated: <strong style={{ color: '#fb923c' }}>{lastUpdated}</strong></>}
           </p>
         </div>

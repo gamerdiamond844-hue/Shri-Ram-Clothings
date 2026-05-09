@@ -334,7 +334,8 @@ export default function Footer() {
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
               <p style={{ fontSize: 12, color: '#4b5563' }}>© {new Date().getFullYear()} Shri Ram Clothings. All Rights Reserved.</p>
-              <p style={{ fontSize: 11, color: '#374151', marginTop: 3 }}>Designed for Premium Men's Fashion Experience</p>
+              <p style={{ fontSize: 11, color: '#374151', marginTop: 2 }}>Platform Managed & Operated by <span style={{ color: '#6b7280' }}>Dinesh Global Enterprise Private Limited</span></p>
+              <p style={{ fontSize: 10, color: '#374151', marginTop: 1 }}>Designed for Premium Men's Fashion Experience</p>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
               {POLICY_LINKS.map(([label, to]) => (
