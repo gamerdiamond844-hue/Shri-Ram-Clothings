@@ -25,6 +25,15 @@ const Profile       = lazy(() => import('./pages/Profile'));
 const Contact       = lazy(() => import('./pages/Contact'));
 const TrackQuery    = lazy(() => import('./pages/TrackQuery'));
 const TrackOrder    = lazy(() => import('./pages/TrackOrder'));
+const PrivacyPolicy     = lazy(() => import('./pages/legal/PrivacyPolicy'));
+const TermsConditions   = lazy(() => import('./pages/legal/TermsConditions'));
+const RefundPolicy      = lazy(() => import('./pages/legal/RefundPolicy'));
+const ShippingPolicy    = lazy(() => import('./pages/legal/OtherPolicies').then(m => ({ default: m.ShippingPolicy })));
+const CancellationPolicy = lazy(() => import('./pages/legal/OtherPolicies').then(m => ({ default: m.CancellationPolicy })));
+const CookiesPolicy     = lazy(() => import('./pages/legal/OtherPolicies').then(m => ({ default: m.CookiesPolicy })));
+const DisclaimerPolicy  = lazy(() => import('./pages/legal/MorePolicies').then(m => ({ default: m.DisclaimerPolicy })));
+const LegalNotice       = lazy(() => import('./pages/legal/MorePolicies').then(m => ({ default: m.LegalNotice })));
+const ReturnPolicy      = lazy(() => import('./pages/legal/MorePolicies').then(m => ({ default: m.ReturnPolicy })));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 
 function Loader() {
@@ -81,6 +90,15 @@ export default function App() {
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/track-query" element={<TrackQuery />} />
                   <Route path="/track-order/:id" element={<ProtectedRoute><TrackOrder /></ProtectedRoute>} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsConditions />} />
+                  <Route path="/refund" element={<RefundPolicy />} />
+                  <Route path="/return-policy" element={<ReturnPolicy />} />
+                  <Route path="/shipping" element={<ShippingPolicy />} />
+                  <Route path="/cancellation" element={<CancellationPolicy />} />
+                  <Route path="/cookies" element={<CookiesPolicy />} />
+                  <Route path="/disclaimer" element={<DisclaimerPolicy />} />
+                  <Route path="/legal" element={<LegalNotice />} />
                 </Routes>
               </Layout>
             } />

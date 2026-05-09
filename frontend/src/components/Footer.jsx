@@ -41,6 +41,10 @@ const POLICY_LINKS = [
   ['Terms & Conditions', '/terms'],
   ['Return Policy', '/return-policy'],
   ['Refund Policy', '/refund'],
+  ['Shipping Policy', '/shipping'],
+  ['Cancellation Policy', '/cancellation'],
+  ['Cookies Policy', '/cookies'],
+  ['Legal Notice', '/legal'],
 ];
 
 const TRUST_BADGES = [
