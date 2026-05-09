@@ -20,7 +20,7 @@ const DEFAULTS = {
   footer_address: 'Silver Square Link, Near Sravan Choukdi, Bharuch, Gujarat – 392001, India',
   footer_maps_url: 'https://maps.google.com/?q=Bharuch,Gujarat,India',
   footer_hours: 'Mon – Sat: 9:00 AM to 8:00 PM',
-  footer_instagram: 'https://instagram.com/shriramclothings',
+  footer_instagram: 'https://www.instagram.com/shriram.clothing',
   footer_facebook: 'https://facebook.com/shriramclothings',
   footer_youtube: 'https://youtube.com/@shriramclothings',
 };
