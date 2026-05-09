@@ -14,9 +14,9 @@ const DEFAULTS = {
   seo_keywords: "men's clothing, t-shirts, shirts, jeans, jackets, ethnic wear, Indian fashion",
   // Footer
   footer_description: "Premium Men's Fashion Brand delivering trendy and high-quality clothing across India.",
-  footer_phone: '+91 98765 43210',
+  footer_phone: '+91 7984626447',
   footer_email: 'support@shriramclothings.com',
-  footer_whatsapp: '919876543210',
+  footer_whatsapp: '917984626447',
   footer_address: 'Silver Square Link, Near Sravan Choukdi, Bharuch, Gujarat – 392001, India',
   footer_maps_url: 'https://maps.google.com/?q=Bharuch,Gujarat,India',
   footer_hours: 'Mon – Sat: 9:00 AM to 8:00 PM',
