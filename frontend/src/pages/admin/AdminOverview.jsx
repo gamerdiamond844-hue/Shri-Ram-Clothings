@@ -197,17 +197,17 @@ export default function AdminOverview() {
             <div className="export-dd" style={{ display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: 4, background: '#fff', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid #f3f4f6', minWidth: 200, zIndex: 50, overflow: 'hidden' }}>
               <div style={{ padding: '8px 14px 6px', fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Select Export</div>
               {[
-                ['full',      '📊 Full System Export (7 Sheets)'],
-                ['orders',    '📦 Orders Only'],
-                ['revenue',   '💰 Revenue Report'],
-                ['products',  '🛍️ Products Report'],
-                ['customers', '👥 Customers Report'],
+                ['full',      ' Full System Export (7 Sheets)'],
+                ['orders',    ' Orders Only'],
+                ['revenue',   ' Revenue Report'],
+                ['products',  ' Products Report'],
+                ['customers', ' Customers Report'],
               ].map(([t, label]) => (
                 <button key={t} onClick={() => exportData(t)} disabled={exporting === t}
                   style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 14px', fontSize: 12, fontWeight: t === 'full' ? 700 : 500, color: t === 'full' ? '#f97316' : '#374151', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid #f9fafb' }}
                   onMouseEnter={e => e.currentTarget.style.background = '#fff7ed'}
                   onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                  {exporting === t ? '⏳ Downloading...' : label}
+                  {exporting === t ? ' Downloading...' : label}
                 </button>
               ))}
             </div>

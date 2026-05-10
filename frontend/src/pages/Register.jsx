@@ -17,7 +17,7 @@ export default function Register() {
 
   const handleGoogleSuccess = (data) => {
     login(data.token, data.user);
-    toast.success(`Welcome, ${data.user.name}! 🎉`);
+    toast.success(`Welcome, ${data.user.name}! `);
     navigate('/');
   };
 
@@ -28,7 +28,7 @@ export default function Register() {
     try {
       const res = await api.post('/auth/register', form);
       login(res.data.token, res.data.user);
-      toast.success(`Welcome, ${res.data.user.name}! 🎉`);
+      toast.success(`Welcome, ${res.data.user.name}! `);
       navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed');

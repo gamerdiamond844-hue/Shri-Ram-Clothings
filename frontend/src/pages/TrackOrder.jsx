@@ -232,7 +232,7 @@ export default function TrackOrder() {
 
         {order.status === 'shipped' && (
           <div style={{ background: '#fff7ed', borderRadius: 12, border: '1px solid #fed7aa', padding: '14px 20px', fontSize: 13, color: '#92400e' }}>
-            ⚠️ Order already shipped. Cancellation is not allowed. Please contact support if needed.
+             Order already shipped. Cancellation is not allowed. Please contact support if needed.
           </div>
         )}
       </div>

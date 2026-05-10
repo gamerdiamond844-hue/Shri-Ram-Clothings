@@ -210,7 +210,7 @@ export default function AdminReels() {
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 8 }}>
                 {r.title && <div style={{ fontSize: 10, color: '#fff', fontWeight: 600, lineHeight: 1.3, marginBottom: 4 }}>{r.title}</div>}
                 {r.product_title && (
-                  <div style={{ fontSize: 9, color: '#fed7aa', fontWeight: 500 }}>🛍️ {r.product_title}</div>
+                  <div style={{ fontSize: 9, color: '#fed7aa', fontWeight: 500 }}> {r.product_title}</div>
                 )}
               </div>
 

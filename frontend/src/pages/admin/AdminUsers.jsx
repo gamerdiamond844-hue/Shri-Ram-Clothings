@@ -107,7 +107,7 @@ export default function AdminUsers() {
     setSavingFD(true);
     try {
       const res = await api.put(`/admin/users/${selected.id}/free-delivery`, fdForm);
-      toast.success(fdForm.is_free_delivery ? '🎉 Free delivery enabled!' : 'Free delivery disabled');
+      toast.success(fdForm.is_free_delivery ? ' Free delivery enabled!' : 'Free delivery disabled');
       setSelected(prev => ({ ...prev, ...res.data }));
       load();
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
@@ -302,7 +302,7 @@ export default function AdminUsers() {
                 {/* User info */}
                 <div style={{ background: '#f9fafb', borderRadius: 10, padding: '12px 14px', fontSize: 12 }}>
                   <p style={{ fontWeight: 700, color: '#374151', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Profile</p>
-                  {[['Phone', selected.phone || '—'], ['Login Method', selected.auth_provider === 'google' ? '🔵 Google' : '📧 Email'], ['Role', selected.role], ['Status', selected.is_banned ? '🚫 Blocked' : '✅ Active'], ['Joined', new Date(selected.created_at).toLocaleDateString('en-IN')]].map(([k, v]) => (
+                  {[['Phone', selected.phone || '—'], ['Login Method', selected.auth_provider === 'google' ? ' Google' : ' Email'], ['Role', selected.role], ['Status', selected.is_banned ? ' Blocked' : ' Active'], ['Joined', new Date(selected.created_at).toLocaleDateString('en-IN')]].map(([k, v]) => (
                     <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                       <span style={{ color: '#9ca3af' }}>{k}</span>
                       <span style={{ fontWeight: 600, color: '#374151' }}>{v}</span>

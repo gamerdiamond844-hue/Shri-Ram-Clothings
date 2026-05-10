@@ -36,7 +36,7 @@ export default function ForgotPassword() {
         <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #f3f4f6', padding: 32, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
           {sent ? (
             <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ width: 56, height: 56, background: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', fontSize: 24 }}>✉️</div>
+              <div style={{ width: 56, height: 56, background: '#f0fdf4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', fontSize: 24 }}></div>
               <p style={{ fontWeight: 600, color: '#374151', fontSize: 14 }}>Check your email for the reset link.</p>
               <p style={{ fontSize: 13, color: '#9ca3af' }}>Didn't receive it? Check spam or try again.</p>
               <Link to="/login" style={{ color: '#f97316', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>Back to Login</Link>

@@ -66,7 +66,7 @@ export default function AdminHpSettings() {
 
       {/* Hero Section */}
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f3f4f6', padding: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}>🏠 Hero Section</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}> Hero Section</div>
         <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 16 }}>Controls the main hero text when no banner image is set</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {FIELDS.slice(0, 4).map(f => (
@@ -85,7 +85,7 @@ export default function AdminHpSettings() {
 
       {/* Announcement */}
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f3f4f6', padding: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}>📢 Announcement Bar</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}> Announcement Bar</div>
         <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 16 }}>Text shown in the top announcement bar</div>
         <div>
           <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 5 }}>{FIELDS[4].label}</label>
@@ -100,7 +100,7 @@ export default function AdminHpSettings() {
 
       {/* SEO */}
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f3f4f6', padding: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}>🔍 SEO Settings</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}> SEO Settings</div>
         <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 16 }}>Controls meta tags for search engine optimization</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {FIELDS.slice(5).map(f => (
@@ -129,12 +129,12 @@ export default function AdminHpSettings() {
 
       <button type="submit" disabled={saving} className="btn-orange"
         style={{ padding: '12px 32px', borderRadius: 12, fontSize: 14, alignSelf: 'flex-start' }}>
-        {saving ? 'Saving...' : '💾 Save All Settings'}
+        {saving ? 'Saving...' : ' Save All Settings'}
       </button>
 
       {/* Footer Settings */}
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f3f4f6', padding: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}>📄 Footer Settings</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}> Footer Settings</div>
         <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 16 }}>Controls footer contact info, address, social links — updates live on frontend</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {FOOTER_FIELDS.map(f => (
@@ -163,7 +163,7 @@ export default function AdminHpSettings() {
 
       <button type="submit" disabled={saving} className="btn-orange"
         style={{ padding: '12px 32px', borderRadius: 12, fontSize: 14, alignSelf: 'flex-start' }}>
-        {saving ? 'Saving...' : '💾 Save All Settings'}
+        {saving ? 'Saving...' : ' Save All Settings'}
       </button>
     </form>
   );

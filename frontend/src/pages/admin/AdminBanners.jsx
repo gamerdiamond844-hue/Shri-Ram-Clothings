@@ -243,7 +243,7 @@ export default function AdminBanners() {
               <div style={{ width: 80, height: 50, borderRadius: 8, overflow: 'hidden', background: '#f9fafb', flexShrink: 0 }}>
                 {b.desktop_image
                   ? <img src={b.desktop_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🖼️</div>
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}></div>
                 }
               </div>
 
@@ -257,7 +257,7 @@ export default function AdminBanners() {
                 </div>
                 {(b.starts_at || b.ends_at) && (
                   <div style={{ fontSize: 10, color: '#f97316', marginTop: 3, fontWeight: 600 }}>
-                    📅 {b.starts_at ? new Date(b.starts_at).toLocaleDateString('en-IN') : '∞'} → {b.ends_at ? new Date(b.ends_at).toLocaleDateString('en-IN') : '∞'}
+                     {b.starts_at ? new Date(b.starts_at).toLocaleDateString('en-IN') : '∞'} → {b.ends_at ? new Date(b.ends_at).toLocaleDateString('en-IN') : '∞'}
                   </div>
                 )}
               </div>

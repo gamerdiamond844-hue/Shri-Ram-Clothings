@@ -24,7 +24,7 @@ export default function ProductCard({ product }) {
       const res = await api.post('/users/wishlist', { product_id: product.id });
       setWishlisted(res.data.wishlisted);
       fetchWishlist(); // update navbar badge count
-      toast.success(res.data.wishlisted ? '❤️ Added to wishlist' : 'Removed from wishlist');
+      toast.success(res.data.wishlisted ? ' Added to wishlist' : 'Removed from wishlist');
     } catch {
       toast.error('Failed');
     } finally {
@@ -58,7 +58,7 @@ export default function ProductCard({ product }) {
         {/* Trending badge */}
         {product.is_trending && (
           <span style={{ position: 'absolute', top: product.discount_percent > 0 ? 34 : 10, left: 10, background: '#111827', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 4 }}>
-            🔥 Hot
+             Hot
           </span>
         )}
 

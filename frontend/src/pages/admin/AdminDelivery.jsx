@@ -153,7 +153,7 @@ export default function AdminDelivery() {
     setShipping(order.id);
     try {
       const res = await api.post(`/shipments/${order.id}/ship`);
-      toast.success(`🚚 Shipped! AWB: ${res.data.awb}`);
+      toast.success(` Shipped! AWB: ${res.data.awb}`);
       fetchOrders();
       fetchStats();
     } catch (err) { toast.error(err.response?.data?.message || 'Delhivery API error'); }
@@ -361,7 +361,7 @@ export default function AdminDelivery() {
 
       {/* Info */}
       <div style={{ background: '#fff7ed', borderRadius: 12, padding: '14px 16px', border: '1px solid #fed7aa', fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
-        <strong>ℹ️ How it works:</strong> Click <strong>Ship Now</strong> to create a Delhivery shipment and generate AWB. Click <strong>👁 Track</strong> to view live tracking. Tracking syncs automatically every 3 hours. Set <code>DELHIVERY_API_TOKEN</code> on Render to activate.
+        <strong>ℹ How it works:</strong> Click <strong>Ship Now</strong> to create a Delhivery shipment and generate AWB. Click <strong> Track</strong> to view live tracking. Tracking syncs automatically every 3 hours. Set <code>DELHIVERY_API_TOKEN</code> on Render to activate.
       </div>
 
       {/* Tracking Modal */}

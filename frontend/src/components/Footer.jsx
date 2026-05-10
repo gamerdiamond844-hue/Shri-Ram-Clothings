@@ -48,11 +48,11 @@ const POLICY_LINKS = [
 ];
 
 const TRUST_BADGES = [
-  { icon: '🔒', label: 'Secure Payments' },
-  { icon: '🚚', label: 'Fast Delivery' },
-  { icon: '↩️', label: 'Easy Returns' },
-  { icon: '⭐', label: 'Premium Quality' },
-  { icon: '✅', label: '100% Authentic' },
+  { icon: '', label: 'Secure Payments' },
+  { icon: '', label: 'Fast Delivery' },
+  { icon: '↩', label: 'Easy Returns' },
+  { icon: '', label: 'Premium Quality' },
+  { icon: '', label: '100% Authentic' },
 ];
 
 const CATEGORIES = [
@@ -120,7 +120,7 @@ export default function Footer() {
     setSubscribing(true);
     try {
       await api.post('/homepage/newsletter', { email });
-      toast.success('🎉 Subscribed! Welcome to Shri Ram Clothings.');
+      toast.success(' Subscribed! Welcome to Shri Ram Clothings.');
       setEmail('');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Subscription failed. Try again.');
@@ -154,7 +154,7 @@ export default function Footer() {
           <div className="wrap">
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
               <div>
-                <p style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Stay in Style 🔥</p>
+                <p style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Stay in Style </p>
                 <p style={{ fontSize: 13, color: '#6b7280' }}>Subscribe for exclusive offers, new arrivals & style tips.</p>
               </div>
               <form onSubmit={handleSubscribe} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

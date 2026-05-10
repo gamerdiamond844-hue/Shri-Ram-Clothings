@@ -5,10 +5,10 @@ import AdminReels from './AdminReels';
 import AdminHpSettings from './AdminHpSettings';
 
 const TABS = [
-  { key: 'banners',  label: '🖼️ Banners' },
-  { key: 'sections', label: '📐 Sections' },
-  { key: 'reels',    label: '🎬 Reels' },
-  { key: 'settings', label: '⚙️ Settings' },
+  { key: 'banners',  label: ' Banners' },
+  { key: 'sections', label: ' Sections' },
+  { key: 'reels',    label: ' Reels' },
+  { key: 'settings', label: ' Settings' },
 ];
 
 export default function AdminHomepage() {

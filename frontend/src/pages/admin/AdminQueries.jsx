@@ -255,7 +255,7 @@ export default function AdminQueries() {
                   <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Attachment</p>
                   <a href={selected.attachment_url} target="_blank" rel="noreferrer"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#f97316', fontWeight: 600, textDecoration: 'none', background: '#fff7ed', padding: '6px 12px', borderRadius: 8 }}>
-                    📎 View Attachment
+                     View Attachment
                   </a>
                 </div>
               )}

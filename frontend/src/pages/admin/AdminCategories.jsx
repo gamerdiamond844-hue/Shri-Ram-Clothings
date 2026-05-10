@@ -214,7 +214,7 @@ export default function AdminCategories() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       {c.image_url
                         ? <img src={c.image_url} alt="" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
-                        : <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>📂</div>
+                        : <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}></div>
                       }
                       <span style={{ fontWeight: 600, color: '#111827' }}>{c.name}</span>
                     </div>

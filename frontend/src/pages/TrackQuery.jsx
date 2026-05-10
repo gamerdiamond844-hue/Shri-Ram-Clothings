@@ -70,7 +70,7 @@ export default function TrackQuery() {
       <div style={{ background: '#111827', padding: '48px 0 40px' }}>
         <div className="wrap" style={{ textAlign: 'center' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(249,115,22,0.12)', color: '#fb923c', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: 100, marginBottom: 16 }}>
-            🔍 Query Tracker
+             Query Tracker
           </div>
           <h1 className="font-display" style={{ fontSize: 'clamp(26px, 5vw, 40px)', fontWeight: 900, color: '#fff', marginBottom: 12 }}>
             Track Your Query

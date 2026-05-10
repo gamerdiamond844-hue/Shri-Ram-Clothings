@@ -8,7 +8,7 @@ const DEFAULTS = {
   hero_subheading: "Premium men's fashion for the modern Indian man.",
   hero_cta_text: 'Shop Now',
   hero_cta_link: '/shop',
-  announcement_text: '🎉 Free Shipping on orders above ₹999 · Use code WELCOME10 for 10% off',
+  announcement_text: ' Free Shipping on orders above ₹999 · Use code WELCOME10 for 10% off',
   seo_title: "Shri Ram Clothings – Premium Men's Fashion Online",
   seo_description: "Shop premium men's clothing at Shri Ram Clothings. T-Shirts, Shirts, Jeans, Jackets & Ethnic Wear. Fast delivery across India.",
   seo_keywords: "men's clothing, t-shirts, shirts, jeans, jackets, ethnic wear, Indian fashion",

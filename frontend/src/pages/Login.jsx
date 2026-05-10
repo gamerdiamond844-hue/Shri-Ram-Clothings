@@ -20,7 +20,7 @@ export default function Login() {
 
   const handleGoogleSuccess = (data) => {
     login(data.token, data.user);
-    toast.success(`Welcome, ${data.user.name}! 🎉`);
+    toast.success(`Welcome, ${data.user.name}! `);
     redirectAfterLogin(data.user);
   };
 

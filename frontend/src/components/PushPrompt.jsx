@@ -38,13 +38,13 @@ export default function PushPrompt() {
         <div style={{ flex: 1, minWidth: 0 }}>
           {subscribed ? (
             <>
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', marginBottom: 3 }}>Notifications enabled! 🎉</p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', marginBottom: 3 }}>Notifications enabled! </p>
               <p style={{ fontSize: 12, color: '#9ca3af' }}>You'll get updates on new arrivals, sales and cart reminders.</p>
             </>
           ) : (
             <>
               <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>
-                {error ? 'Could not enable notifications' : 'Stay in the loop 🔔'}
+                {error ? 'Could not enable notifications' : 'Stay in the loop '}
               </p>
               <p style={{ fontSize: 12, color: error ? '#fca5a5' : '#9ca3af', lineHeight: 1.5, marginBottom: 12 }}>
                 {error || 'Get notified about new arrivals, flash sales, and cart reminders.'}

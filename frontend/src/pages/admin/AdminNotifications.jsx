@@ -55,7 +55,7 @@ function SendNotifPanel() {
     try {
       const res = await api.post('/notifications/admin/send', form);
       setSent(res.data);
-      toast.success(`✅ ${res.data.message}`);
+      toast.success(` ${res.data.message}`);
       setForm(blankSend);
       setSelectedUser(null);
       setUserSearch('');
@@ -90,7 +90,7 @@ function SendNotifPanel() {
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>Send To</label>
           <div style={{ display: 'flex', gap: 8 }}>
-            {[{ val: 'all', label: '👥 All Users' }, { val: 'specific', label: '👤 Specific User' }].map(({ val, label }) => (
+            {[{ val: 'all', label: ' All Users' }, { val: 'specific', label: ' Specific User' }].map(({ val, label }) => (
               <button key={val} type="button" onClick={() => { setForm(p => ({ ...p, target: val, user_id: null })); setSelectedUser(null); setUserSearch(''); }}
                 style={{ flex: 1, padding: '9px', borderRadius: 10, border: `1.5px solid ${form.target === val ? '#f97316' : '#e5e7eb'}`, background: form.target === val ? '#fff7ed' : '#fff', color: form.target === val ? '#f97316' : '#6b7280', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 {label}
@@ -141,7 +141,7 @@ function SendNotifPanel() {
         <div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>Title *</label>
           <input required value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
-            placeholder="e.g. 🔥 Flash Sale — 50% Off Today!" style={inp} />
+            placeholder="e.g.  Flash Sale — 50% Off Today!" style={inp} />
         </div>
 
         {/* Message */}
@@ -236,7 +236,7 @@ export default function AdminNotifications() {
     setSending(id);
     try {
       const res = await api.post(`/notifications/admin/campaigns/${id}/send`);
-      toast.success(`✅ Sent to ${res.data.sent} subscribers!`);
+      toast.success(` Sent to ${res.data.sent} subscribers!`);
       load();
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to send'); }
     finally { setSending(null); }
@@ -253,7 +253,7 @@ export default function AdminNotifications() {
     setRequesting(true);
     try {
       const res = await api.post('/notifications/admin/request-push');
-      toast.success(`🔔 Push request sent to ${res.data.sent} users!`);
+      toast.success(` Push request sent to ${res.data.sent} users!`);
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
     finally { setRequesting(false); }
   };
@@ -327,7 +327,7 @@ export default function AdminNotifications() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 5 }}>Title *</label>
-              <input required value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="e.g. 🔥 Flash Sale!" style={inp} />
+              <input required value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="e.g.  Flash Sale!" style={inp} />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 5 }}>Message *</label>
@@ -348,7 +348,7 @@ export default function AdminNotifications() {
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="submit" disabled={saving} className="btn-orange" style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13 }}>
-              {saving ? 'Saving...' : form.scheduled_at ? '📅 Schedule' : '💾 Save Draft'}
+              {saving ? 'Saving...' : form.scheduled_at ? ' Schedule' : ' Save Draft'}
             </button>
             <button type="button" onClick={() => setShowForm(false)} style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, border: '1.5px solid #e5e7eb', background: '#fff', cursor: 'pointer', color: '#374151' }}>Cancel</button>
           </div>
@@ -418,7 +418,7 @@ export default function AdminNotifications() {
       </div>
 
       <div style={{ background: '#fff7ed', borderRadius: 12, padding: '14px 16px', border: '1px solid #fed7aa', fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
-        <strong>ℹ️ How it works:</strong> "Send Notification" sends both in-app + push instantly. "Push Campaigns" are for scheduled/broadcast push-only. Cart reminders run automatically every 6 hours.
+        <strong>ℹ How it works:</strong> "Send Notification" sends both in-app + push instantly. "Push Campaigns" are for scheduled/broadcast push-only. Cart reminders run automatically every 6 hours.
       </div>
     </div>
   );

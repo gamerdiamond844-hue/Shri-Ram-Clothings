@@ -27,7 +27,7 @@ export default function LegalPage({ title, lastUpdated, children }) {
       <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderBottom: '1px solid rgba(249,115,22,0.2)', padding: '56px 0 40px' }}>
         <div className="wrap" style={{ maxWidth: 900 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(249,115,22,0.12)', color: '#fb923c', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '4px 12px', borderRadius: 100, marginBottom: 16 }}>
-            ⚖️ Legal Document
+             Legal Document
           </div>
           <h1 className="font-display" style={{ fontSize: 'clamp(24px, 4vw, 38px)', fontWeight: 900, color: '#fff', marginBottom: 12, lineHeight: 1.15 }}>{title}</h1>
           <p style={{ fontSize: 13, color: '#64748b' }}>
@@ -88,7 +88,7 @@ export function List({ items }) {
 export function Alert({ children }) {
   return (
     <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', margin: '12px 0', fontSize: 13, color: '#991b1b', fontWeight: 500 }}>
-      ⚠️ {children}
+       {children}
     </div>
   );
 }
@@ -96,7 +96,7 @@ export function Alert({ children }) {
 export function InfoBox({ children }) {
   return (
     <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 16px', margin: '12px 0', fontSize: 13, color: '#1e40af' }}>
-      ℹ️ {children}
+      ℹ {children}
     </div>
   );
 }

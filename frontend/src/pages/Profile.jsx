@@ -55,8 +55,8 @@ function PushToggleCard() {
           <div>
             <p style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 2 }}>Push Notifications</p>
             <p style={{ fontSize: 12, color: '#6b7280' }}>
-              {subscribed ? '✅ Enabled — you will receive alerts for orders, sales and cart reminders.'
-                : permission === 'denied' ? '🚫 Blocked by browser. Click the 🔒 icon in address bar → Allow Notifications.'
+              {subscribed ? ' Enabled — you will receive alerts for orders, sales and cart reminders.'
+                : permission === 'denied' ? ' Blocked by browser. Click the  icon in address bar → Allow Notifications.'
                 : 'Get notified about new arrivals, flash sales and order updates.'}
             </p>
             {error && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{error}</p>}
@@ -200,7 +200,7 @@ export default function Profile() {
           {/* Avatar change hint */}
           {avatar && (
             <div style={{ fontSize: 12, color: '#f97316', background: '#fff7ed', padding: '6px 12px', borderRadius: 8, flexShrink: 0 }}>
-              📷 New photo selected — save to apply
+               New photo selected — save to apply
             </div>
           )}
         </div>

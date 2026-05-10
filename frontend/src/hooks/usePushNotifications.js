@@ -58,7 +58,7 @@ export function usePushNotifications() {
         setLoading(false);
         setError(
           perm === 'denied'
-            ? 'Notifications blocked. Click 🔒 in address bar → Site Settings → Notifications → Allow.'
+            ? 'Notifications blocked. Click  in address bar → Site Settings → Notifications → Allow.'
             : 'Permission not granted. Please try again.'
         );
         return false;

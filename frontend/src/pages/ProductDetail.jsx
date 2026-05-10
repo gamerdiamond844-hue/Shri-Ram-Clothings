@@ -50,9 +50,9 @@ const SIZE_DATA = {
 const DEFAULT_CHART = SIZE_DATA['T-Shirts'];
 
 const HOW_TO = [
-  { label: 'Chest', icon: '📏', tip: 'Measure around the fullest part of your chest, keeping the tape horizontal.' },
-  { label: 'Waist', icon: '📐', tip: 'Measure around your natural waistline, just above the hip bone.' },
-  { label: 'Shoulder', icon: '📌', tip: 'Measure from the edge of one shoulder to the other across the back.' },
+  { label: 'Chest', icon: '', tip: 'Measure around the fullest part of your chest, keeping the tape horizontal.' },
+  { label: 'Waist', icon: '', tip: 'Measure around your natural waistline, just above the hip bone.' },
+  { label: 'Shoulder', icon: '', tip: 'Measure from the edge of one shoulder to the other across the back.' },
 ];
 
 // ── Size Guide Modal ──────────────────────────────────────────────────────────

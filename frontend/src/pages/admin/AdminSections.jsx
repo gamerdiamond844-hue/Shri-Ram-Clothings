@@ -4,13 +4,13 @@ import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
 const SECTION_TYPES = [
-  { value: 'featured_products', label: '⭐ Featured Products' },
-  { value: 'trending_products', label: '🔥 Trending Products' },
-  { value: 'new_arrivals',      label: '✨ New Arrivals' },
-  { value: 'categories',        label: '📂 Categories' },
-  { value: 'best_sellers',      label: '🏆 Best Sellers' },
-  { value: 'offer_banner',      label: '🎯 Offer Banner' },
-  { value: 'reels',             label: '🎬 Reels / Videos' },
+  { value: 'featured_products', label: ' Featured Products' },
+  { value: 'trending_products', label: ' Trending Products' },
+  { value: 'new_arrivals',      label: ' New Arrivals' },
+  { value: 'categories',        label: ' Categories' },
+  { value: 'best_sellers',      label: ' Best Sellers' },
+  { value: 'offer_banner',      label: ' Offer Banner' },
+  { value: 'reels',             label: ' Reels / Videos' },
 ];
 
 const inp = { width: '100%', padding: '9px 12px', fontSize: 13, border: '1.5px solid #e5e7eb', borderRadius: 8, outline: 'none', fontFamily: 'inherit', color: '#111827', background: '#fff' };

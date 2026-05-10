@@ -172,7 +172,7 @@ export default function Checkout() {
                 {/* Free delivery badge */}
                 {freeDelivery?.eligible && (
                   <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    🎉 <strong>Congratulations!</strong> You are eligible for FREE delivery!
+                     <strong>Congratulations!</strong> You are eligible for FREE delivery!
                     {freeDelivery.expiry && <span style={{ color: '#9ca3af', marginLeft: 4 }}>· Valid till {new Date(freeDelivery.expiry).toLocaleDateString('en-IN')}</span>}
                   </div>
                 )}
@@ -180,7 +180,7 @@ export default function Checkout() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6b7280' }}>
                   <span>Shipping</span>
                   <span style={{ fontWeight: 600, color: isFreeDelivery ? '#16a34a' : '#111827' }}>
-                    {isFreeDelivery ? 'FREE 🎉' : '₹99'}
+                    {isFreeDelivery ? 'FREE ' : '₹99'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15, color: '#111827', borderTop: '1px solid #f3f4f6', paddingTop: 10, marginTop: 4 }}>

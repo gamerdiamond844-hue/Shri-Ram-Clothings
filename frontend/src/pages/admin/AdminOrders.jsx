@@ -58,7 +58,7 @@ export default function AdminOrders() {
     setShipping(id);
     try {
       const res = await api.post(`/shipments/${id}/ship`);
-      toast.success(`🚚 Shipped! AWB: ${res.data.awb}`);
+      toast.success(` Shipped! AWB: ${res.data.awb}`);
       fetchOrders();
     } catch (err) { toast.error(err.response?.data?.message || 'Failed to ship'); }
     finally { setShipping(null); }

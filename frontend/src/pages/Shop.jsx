@@ -141,7 +141,7 @@ export default function Shop() {
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '80px 0' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>👕</div>
+            <div style={{ fontSize: 48, marginBottom: 16 }}></div>
             <p style={{ fontSize: 18, fontWeight: 600, color: '#374151', marginBottom: 6 }}>No products found</p>
             <p style={{ fontSize: 14, color: '#9ca3af' }}>Try a different category or search term</p>
           </div>

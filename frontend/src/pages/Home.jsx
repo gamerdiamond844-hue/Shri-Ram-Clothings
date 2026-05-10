@@ -147,7 +147,7 @@ function ReelsSection({ reels }) {
       <div className="wrap">
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#f97316', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>🎬 Style Reels</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#f97316', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}> Style Reels</div>
             <h2 className="font-display" style={{ fontSize: 'clamp(24px, 4vw, 34px)', fontWeight: 900, color: '#fff' }}>Shop the Look</h2>
           </div>
           <button onClick={() => setMuted(m => !m)}
@@ -201,7 +201,7 @@ function ReelsSection({ reels }) {
               {/* Play indicator */}
               {i !== activeIdx && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>▶</div>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}></div>
                 </div>
               )}
             </div>
@@ -238,9 +238,9 @@ function ProductSection({ section }) {
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#f97316', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
               {section.type === 'featured_products' && 'Handpicked'}
-              {section.type === 'trending_products' && '🔥 Hot Right Now'}
-              {section.type === 'new_arrivals'      && '✨ Just In'}
-              {section.type === 'best_sellers'      && '🏆 Top Picks'}
+              {section.type === 'trending_products' && ' Hot Right Now'}
+              {section.type === 'new_arrivals'      && ' Just In'}
+              {section.type === 'best_sellers'      && ' Top Picks'}
             </div>
             <h2 className="font-display" style={{ fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 900, color: '#111827' }}>
               {section.title || {

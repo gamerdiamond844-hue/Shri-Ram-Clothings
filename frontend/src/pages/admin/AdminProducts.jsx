@@ -268,7 +268,7 @@ export default function AdminProducts() {
             )}
 
             {totalImageCount === 0 && !editProduct && (
-              <p style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}>⚠️ At least 1 image required</p>
+              <p style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}> At least 1 image required</p>
             )}
           </div>
 
@@ -360,7 +360,7 @@ export default function AdminProducts() {
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <button onClick={() => toggle(p.id, 'is_trending', p.is_trending)} style={{ padding: '4px 10px', borderRadius: 100, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', background: p.is_trending ? '#fee2e2' : '#f3f4f6', color: p.is_trending ? '#991b1b' : '#9ca3af' }}>
-                      {p.is_trending ? '🔥 Trending' : '+ Trending'}
+                      {p.is_trending ? ' Trending' : '+ Trending'}
                     </button>
                   </td>
                   <td style={{ padding: '10px 14px' }}>
