@@ -4,8 +4,8 @@ import { ShoppingCart, Heart, Star, ChevronLeft, ChevronRight, Truck, Shield, Re
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import ReviewSection from '../components/ReviewSection';
 
-// ── Size data ─────────────────────────────────────────────────────────────────
 const SIZE_DATA = {
   'T-Shirts': [
     { size: 'XS', chest: '34–35', waist: '28–29', shoulder: '16.5', length: '27' },
@@ -50,12 +50,11 @@ const SIZE_DATA = {
 const DEFAULT_CHART = SIZE_DATA['T-Shirts'];
 
 const HOW_TO = [
-  { label: 'Chest', icon: '', tip: 'Measure around the fullest part of your chest, keeping the tape horizontal.' },
-  { label: 'Waist', icon: '', tip: 'Measure around your natural waistline, just above the hip bone.' },
-  { label: 'Shoulder', icon: '', tip: 'Measure from the edge of one shoulder to the other across the back.' },
+  { label: 'Chest', tip: 'Measure around the fullest part of your chest, keeping the tape horizontal.' },
+  { label: 'Waist', tip: 'Measure around your natural waistline, just above the hip bone.' },
+  { label: 'Shoulder', tip: 'Measure from the edge of one shoulder to the other across the back.' },
 ];
 
-// ── Size Guide Modal ──────────────────────────────────────────────────────────
 function SizeGuideModal({ category, onClose }) {
   const cats = Object.keys(SIZE_DATA);
   const matched = cats.find(c => category?.toLowerCase().includes(c.toLowerCase())) || cats[0];
@@ -63,10 +62,6 @@ function SizeGuideModal({ category, onClose }) {
   const rows = SIZE_DATA[activeTab] || DEFAULT_CHART;
   const isJeans = activeTab === 'Jeans';
 
-  // Close on backdrop click
-  const handleBackdrop = (e) => { if (e.target === e.currentTarget) onClose(); };
-
-  // Close on Escape
   useEffect(() => {
     const fn = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', fn);
@@ -75,32 +70,22 @@ function SizeGuideModal({ category, onClose }) {
   }, [onClose]);
 
   return (
-    <div
-      onClick={handleBackdrop}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0' }}
+    <div onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
       className="fade-in">
-
-      {/* Sheet */}
       <div style={{ background: '#fff', width: '100%', maxWidth: 640, maxHeight: '90vh', borderRadius: '20px 20px 0 0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         onClick={e => e.stopPropagation()}>
-
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Ruler size={18} color="#f97316" />
             <span style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>Size Guide</span>
             <span style={{ fontSize: 11, color: '#9ca3af', background: '#f3f4f6', padding: '2px 8px', borderRadius: 100 }}>All measurements in inches</span>
           </div>
-          <button onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f3f4f6', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151' }}>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f3f4f6', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#374151' }}>
             <X size={16} />
           </button>
         </div>
-
-        {/* Scrollable body */}
         <div style={{ overflowY: 'auto', flex: 1, padding: '20px' }}>
-
-          {/* Category tabs */}
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 20 }}>
             {cats.map(cat => (
               <button key={cat} onClick={() => setActiveTab(cat)}
@@ -109,13 +94,11 @@ function SizeGuideModal({ category, onClose }) {
               </button>
             ))}
           </div>
-
-          {/* Size table */}
           <div style={{ overflowX: 'auto', marginBottom: 24 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#111827' }}>
-                  {['Size', isJeans ? 'Waist' : 'Chest', isJeans ? 'Length (Inseam)' : 'Waist', isJeans ? '—' : 'Shoulder', isJeans ? '—' : 'Length'].filter(h => h !== '—').map(h => (
+                  {['Size', isJeans ? 'Waist' : 'Chest', isJeans ? 'Length (Inseam)' : 'Waist', isJeans ? null : 'Shoulder', isJeans ? null : 'Length'].filter(Boolean).map(h => (
                     <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -125,31 +108,20 @@ function SizeGuideModal({ category, onClose }) {
                   <tr key={row.size} style={{ background: i % 2 === 0 ? '#fff' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#111827', fontSize: 14 }}>{row.size}</td>
                     {isJeans ? (
-                      <>
-                        <td style={{ padding: '10px 14px', color: '#374151' }}>{row.waist}"</td>
-                        <td style={{ padding: '10px 14px', color: '#374151' }}>{row.length}"</td>
-                      </>
+                      <><td style={{ padding: '10px 14px', color: '#374151' }}>{row.waist}"</td><td style={{ padding: '10px 14px', color: '#374151' }}>{row.length}"</td></>
                     ) : (
-                      <>
-                        <td style={{ padding: '10px 14px', color: '#374151' }}>{row.chest}"</td>
-                        <td style={{ padding: '10px 14px', color: '#374151' }}>{row.waist}"</td>
-                        <td style={{ padding: '10px 14px', color: '#374151' }}>{row.shoulder}"</td>
-                        <td style={{ padding: '10px 14px', color: '#374151' }}>{row.length}"</td>
-                      </>
+                      <><td style={{ padding: '10px 14px', color: '#374151' }}>{row.chest}"</td><td style={{ padding: '10px 14px', color: '#374151' }}>{row.waist}"</td><td style={{ padding: '10px 14px', color: '#374151' }}>{row.shoulder}"</td><td style={{ padding: '10px 14px', color: '#374151' }}>{row.length}"</td></>
                     )}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
-          {/* How to measure */}
           <div style={{ marginBottom: 20 }}>
             <p style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 12 }}>How to Measure</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {HOW_TO.map(h => (
                 <div key={h.label} style={{ display: 'flex', gap: 12, background: '#f9fafb', borderRadius: 10, padding: '12px 14px' }}>
-                  <span style={{ fontSize: 22, flexShrink: 0 }}>{h.icon}</span>
                   <div>
                     <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 2 }}>{h.label}</p>
                     <p style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>{h.tip}</p>
@@ -158,10 +130,8 @@ function SizeGuideModal({ category, onClose }) {
               ))}
             </div>
           </div>
-
-          {/* Note */}
           <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#92400e', lineHeight: 1.6 }}>
-            <strong>Note:</strong> Measurements may vary slightly by ±0.5". If you are between sizes, we recommend sizing up for a comfortable fit. All measurements are in inches.
+            <strong>Note:</strong> Measurements may vary slightly by ±0.5". If you are between sizes, we recommend sizing up for a comfortable fit.
           </div>
         </div>
       </div>
@@ -181,17 +151,15 @@ export default function ProductDetail() {
   const [wishlisted, setWishlisted] = useState(false);
   const [adding, setAdding] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
-  const [reviewText, setReviewText] = useState('');
-  const [reviewRating, setReviewRating] = useState(5);
-  const [submittingReview, setSubmittingReview] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
+  const loadProduct = () => {
     api.get(`/products/${id}`)
       .then(r => { setProduct(r.data); if (r.data.variants?.length) setSelectedVariant(r.data.variants[0]); })
       .catch(() => navigate('/shop'))
       .finally(() => setLoading(false));
-  }, [id, navigate]);
+  };
+
+  useEffect(() => { setLoading(true); loadProduct(); }, [id]);
 
   const discountedPrice = product?.discount_percent > 0
     ? Math.round(product.price * (1 - product.discount_percent / 100))
@@ -220,21 +188,6 @@ export default function ProductDetail() {
       setWishlisted(res.data.wishlisted);
       toast.success(res.data.wishlisted ? 'Added to wishlist' : 'Removed from wishlist');
     } catch { toast.error('Failed'); }
-  };
-
-  const handleReview = async (e) => {
-    e.preventDefault();
-    if (!user) return toast.error('Please login to review');
-    setSubmittingReview(true);
-    try {
-      await api.post(`/products/${id}/reviews`, { rating: reviewRating, comment: reviewText });
-      toast.success('Review submitted!');
-      setReviewText('');
-      const r = await api.get(`/products/${id}`);
-      setProduct(r.data);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed');
-    } finally { setSubmittingReview(false); }
   };
 
   if (loading) return (
@@ -267,41 +220,28 @@ export default function ProductDetail() {
         {/* Main grid */}
         <div className="product-grid">
 
-          {/* ── Images ── */}
+          {/* Images */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-            {/* Main image */}
             <div style={{ position: 'relative', background: '#f9fafb', borderRadius: 16, overflow: 'hidden', aspectRatio: '4/5' }}>
-              <img
-                src={images[activeImg]?.image_url}
-                alt={product.title}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity 0.3s' }}
-              />
-
-              {/* Prev/Next arrows */}
+              <img src={images[activeImg]?.image_url} alt={product.title}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity 0.3s' }} />
               {images.length > 1 && (
                 <>
-                  <button
-                    onClick={() => setActiveImg(i => (i - 1 + images.length) % images.length)}
+                  <button onClick={() => setActiveImg(i => (i - 1 + images.length) % images.length)}
                     style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
                     <ChevronLeft size={18} />
                   </button>
-                  <button
-                    onClick={() => setActiveImg(i => (i + 1) % images.length)}
+                  <button onClick={() => setActiveImg(i => (i + 1) % images.length)}
                     style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
                     <ChevronRight size={18} />
                   </button>
                 </>
               )}
-
-              {/* Discount badge */}
               {product.discount_percent > 0 && (
                 <span style={{ position: 'absolute', top: 14, left: 14, background: '#f97316', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6 }}>
                   -{product.discount_percent}% OFF
                 </span>
               )}
-
-              {/* Dot indicators */}
               {images.length > 1 && (
                 <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 6 }}>
                   {images.map((_, i) => (
@@ -311,13 +251,11 @@ export default function ProductDetail() {
                 </div>
               )}
             </div>
-
-            {/* Thumbnails */}
             {images.length > 1 && (
               <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
                 {images.map((img, i) => (
                   <button key={i} onClick={() => setActiveImg(i)}
-                    style={{ flexShrink: 0, width: 64, height: 76, borderRadius: 10, overflow: 'hidden', border: `2px solid ${activeImg === i ? '#f97316' : 'transparent'}`, cursor: 'pointer', padding: 0, background: 'none', transition: 'border-color 0.2s', boxShadow: activeImg === i ? '0 2px 8px rgba(249,115,22,0.3)' : 'none' }}>
+                    style={{ flexShrink: 0, width: 64, height: 76, borderRadius: 10, overflow: 'hidden', border: `2px solid ${activeImg === i ? '#f97316' : 'transparent'}`, cursor: 'pointer', padding: 0, background: 'none', transition: 'border-color 0.2s' }}>
                     <img src={img.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   </button>
                 ))}
@@ -325,40 +263,29 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* ── Product Info ── */}
+          {/* Product Info */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-            {/* Category + Title + Rating + Price */}
             <div>
               {product.category_name && (
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#f97316', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-                  {product.category_name}
-                </p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#f97316', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{product.category_name}</p>
               )}
-              <h1 className="font-display" style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 900, color: '#111827', lineHeight: 1.2, marginBottom: 12 }}>
-                {product.title}
-              </h1>
-
+              <h1 className="font-display" style={{ fontSize: 'clamp(22px, 3vw, 30px)', fontWeight: 900, color: '#111827', lineHeight: 1.2, marginBottom: 12 }}>{product.title}</h1>
               {product.avg_rating > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                   <div style={{ display: 'flex', gap: 2 }}>
                     {[1,2,3,4,5].map(i => (
-                      <Star key={i} size={14}
-                        style={{ color: i <= Math.round(product.avg_rating) ? '#facc15' : '#e5e7eb', fill: i <= Math.round(product.avg_rating) ? '#facc15' : '#e5e7eb' }} />
+                      <Star key={i} size={14} style={{ color: i <= Math.round(product.avg_rating) ? '#facc15' : '#e5e7eb', fill: i <= Math.round(product.avg_rating) ? '#facc15' : '#e5e7eb' }} />
                     ))}
                   </div>
                   <span style={{ fontSize: 13, color: '#6b7280' }}>{product.avg_rating} · {product.review_count} reviews</span>
                 </div>
               )}
-
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 30, fontWeight: 900, color: '#111827' }}>₹{discountedPrice ?? product.price}</span>
                 {discountedPrice && (
                   <>
                     <span style={{ fontSize: 18, color: '#9ca3af', textDecoration: 'line-through', fontWeight: 400 }}>₹{product.price}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', background: '#f0fdf4', padding: '3px 8px', borderRadius: 20 }}>
-                      Save ₹{product.price - discountedPrice}
-                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', background: '#f0fdf4', padding: '3px 8px', borderRadius: 20 }}>Save ₹{product.price - discountedPrice}</span>
                   </>
                 )}
               </div>
@@ -366,19 +293,13 @@ export default function ProductDetail() {
 
             <div style={{ height: 1, background: '#f3f4f6' }} />
 
-            {/* Size selector */}
             {product.variants?.length > 0 && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Select Size</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {selectedVariant && (
-                      <p style={{ fontSize: 12, color: '#9ca3af' }}>
-                        {selectedVariant.stock > 0 ? `${selectedVariant.stock} in stock` : 'Out of stock'}
-                      </p>
-                    )}
-                    <button
-                      onClick={() => setSizeGuideOpen(true)}
+                    {selectedVariant && <p style={{ fontSize: 12, color: '#9ca3af' }}>{selectedVariant.stock > 0 ? `${selectedVariant.stock} in stock` : 'Out of stock'}</p>}
+                    <button onClick={() => setSizeGuideOpen(true)}
                       style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#f97316', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', textUnderlineOffset: 3 }}>
                       <Ruler size={13} /> Size Guide
                     </button>
@@ -386,21 +307,11 @@ export default function ProductDetail() {
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {product.variants.map(v => (
-                    <button key={v.id} onClick={() => v.stock > 0 && setSelectedVariant(v)}
-                      disabled={v.stock < 1}
-                      style={{
-                        position: 'relative', width: 52, height: 52, borderRadius: 10,
-                        border: `2px solid ${selectedVariant?.id === v.id ? '#111827' : v.stock < 1 ? '#f3f4f6' : '#e5e7eb'}`,
-                        background: selectedVariant?.id === v.id ? '#111827' : v.stock < 1 ? '#f9fafb' : '#fff',
-                        color: selectedVariant?.id === v.id ? '#fff' : v.stock < 1 ? '#d1d5db' : '#374151',
-                        fontSize: 13, fontWeight: 600, cursor: v.stock < 1 ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.15s',
-                      }}>
+                    <button key={v.id} onClick={() => v.stock > 0 && setSelectedVariant(v)} disabled={v.stock < 1}
+                      style={{ position: 'relative', width: 52, height: 52, borderRadius: 10, border: `2px solid ${selectedVariant?.id === v.id ? '#111827' : v.stock < 1 ? '#f3f4f6' : '#e5e7eb'}`, background: selectedVariant?.id === v.id ? '#111827' : v.stock < 1 ? '#f9fafb' : '#fff', color: selectedVariant?.id === v.id ? '#fff' : v.stock < 1 ? '#d1d5db' : '#374151', fontSize: 13, fontWeight: 600, cursor: v.stock < 1 ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                       {v.size}
                       {v.stock < 5 && v.stock > 0 && (
-                        <span style={{ position: 'absolute', top: -6, right: -6, width: 16, height: 16, background: '#f97316', color: '#fff', fontSize: 8, fontWeight: 700, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {v.stock}
-                        </span>
+                        <span style={{ position: 'absolute', top: -6, right: -6, width: 16, height: 16, background: '#f97316', color: '#fff', fontSize: 8, fontWeight: 700, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{v.stock}</span>
                       )}
                     </button>
                   ))}
@@ -408,33 +319,21 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* Quantity */}
             <div>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 10 }}>Quantity</p>
               <div style={{ display: 'inline-flex', alignItems: 'center', border: '1.5px solid #e5e7eb', borderRadius: 10, overflow: 'hidden' }}>
-                <button onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  style={{ width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', borderRight: '1px solid #e5e7eb', color: '#374151' }}>
-                  <Minus size={15} />
-                </button>
+                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} style={{ width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', borderRight: '1px solid #e5e7eb', color: '#374151' }}><Minus size={15} /></button>
                 <span style={{ width: 48, textAlign: 'center', fontSize: 14, fontWeight: 600, color: '#111827' }}>{quantity}</span>
-                <button onClick={() => setQuantity(q => Math.min(selectedVariant?.stock || 10, q + 1))}
-                  style={{ width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', borderLeft: '1px solid #e5e7eb', color: '#374151' }}>
-                  <Plus size={15} />
-                </button>
+                <button onClick={() => setQuantity(q => Math.min(selectedVariant?.stock || 10, q + 1))} style={{ width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', borderLeft: '1px solid #e5e7eb', color: '#374151' }}><Plus size={15} /></button>
               </div>
             </div>
 
-            {/* Action buttons */}
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={handleAddToCart}
-                disabled={adding || !selectedVariant || selectedVariant?.stock < 1}
-                className="btn-outline"
+              <button onClick={handleAddToCart} disabled={adding || !selectedVariant || selectedVariant?.stock < 1} className="btn-outline"
                 style={{ flex: 1, padding: '14px 12px', borderRadius: 12, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: (adding || !selectedVariant || selectedVariant?.stock < 1) ? 0.4 : 1 }}>
                 <ShoppingCart size={16} /> {adding ? 'Adding...' : 'Add to Cart'}
               </button>
-              <button onClick={handleBuyNow}
-                disabled={!selectedVariant || selectedVariant?.stock < 1}
-                className="btn-orange"
+              <button onClick={handleBuyNow} disabled={!selectedVariant || selectedVariant?.stock < 1} className="btn-orange"
                 style={{ flex: 1, padding: '14px 12px', borderRadius: 12, fontSize: 13, opacity: (!selectedVariant || selectedVariant?.stock < 1) ? 0.4 : 1 }}>
                 Buy Now
               </button>
@@ -444,7 +343,6 @@ export default function ProductDetail() {
               </button>
             </div>
 
-            {/* Trust badges */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {[{ icon: Truck, text: 'Free above ₹999' }, { icon: Shield, text: 'Secure Payment' }, { icon: RefreshCw, text: '7-Day Returns' }].map(({ icon: Icon, text }) => (
                 <div key={text} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: '#f9fafb', borderRadius: 12, textAlign: 'center' }}>
@@ -454,7 +352,6 @@ export default function ProductDetail() {
               ))}
             </div>
 
-            {/* Description */}
             {product.description && (
               <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 18 }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>Description</p>
@@ -464,76 +361,16 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* ── Reviews ── */}
-        <div style={{ marginTop: 64, paddingTop: 40, borderTop: '1px solid #f3f4f6' }}>
-          <h2 className="font-display" style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 900, color: '#111827', marginBottom: 28 }}>
-            Customer Reviews
-          </h2>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }} className="product-grid">
-
-            {/* Write review form */}
-            {user && (
-              <div style={{ background: '#f9fafb', borderRadius: 16, padding: 24 }}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: '#111827', marginBottom: 16 }}>Write a Review</p>
-                <form onSubmit={handleReview} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div>
-                    <p style={{ fontSize: 12, color: '#6b7280', fontWeight: 500, marginBottom: 8 }}>Your Rating</p>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      {[1,2,3,4,5].map(i => (
-                        <button key={i} type="button" onClick={() => setReviewRating(i)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, transition: 'transform 0.15s' }}
-                          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
-                          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-                          <Star size={24} style={{ color: i <= reviewRating ? '#facc15' : '#d1d5db', fill: i <= reviewRating ? '#facc15' : '#d1d5db' }} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <textarea value={reviewText} onChange={e => setReviewText(e.target.value)}
-                    placeholder="Share your experience with this product..."
-                    rows={4}
-                    style={{ width: '100%', padding: '11px 14px', fontSize: 13, border: '1.5px solid #e5e7eb', borderRadius: 10, outline: 'none', resize: 'none', fontFamily: 'inherit', color: '#111827', background: '#fff' }} />
-                  <button type="submit" disabled={submittingReview} className="btn-primary"
-                    style={{ padding: '11px 24px', borderRadius: 10, fontSize: 13, alignSelf: 'flex-start' }}>
-                    {submittingReview ? 'Submitting...' : 'Submit Review'}
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {/* Reviews list */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {product.reviews?.length ? product.reviews.map(r => (
-                <div key={r.id} style={{ background: '#fff', border: '1px solid #f3f4f6', borderRadius: 12, padding: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                      {r.user_name?.[0]?.toUpperCase()}
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{r.user_name}</p>
-                      <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
-                        {[1,2,3,4,5].map(i => (
-                          <Star key={i} size={11} style={{ color: i <= r.rating ? '#facc15' : '#e5e7eb', fill: i <= r.rating ? '#facc15' : '#e5e7eb' }} />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  {r.comment && <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>{r.comment}</p>}
-                </div>
-              )) : (
-                <div style={{ textAlign: 'center', padding: '48px 24px', border: '2px dashed #f3f4f6', borderRadius: 16 }}>
-                  <Star size={28} style={{ margin: '0 auto 10px', color: '#e5e7eb', fill: '#e5e7eb' }} />
-                  <p style={{ fontSize: 14, fontWeight: 500, color: '#6b7280' }}>No reviews yet</p>
-                  <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>Be the first to review this product</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Premium Review Section */}
+        <ReviewSection
+          productId={id}
+          reviews={product.reviews || []}
+          avgRating={product.avg_rating}
+          reviewCount={parseInt(product.review_count) || 0}
+          onRefresh={loadProduct}
+        />
       </div>
 
-      {/* ── Size Guide Modal ── */}
       {sizeGuideOpen && <SizeGuideModal category={product.category_name} onClose={() => setSizeGuideOpen(false)} />}
     </div>
   );
