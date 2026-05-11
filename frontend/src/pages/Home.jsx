@@ -1,16 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Truck, Shield, RefreshCw, Headphones, ChevronLeft, ChevronRight, Volume2, VolumeX, ShoppingBag } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Volume2, VolumeX, ShoppingBag } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import api from '../utils/api';
 import { useSiteSettings } from '../context/SiteSettingsContext';
-
-const FEATURES = [
-  { icon: Truck,      title: 'Free Shipping',  desc: 'On orders above ₹999' },
-  { icon: Shield,     title: 'Secure Payment', desc: '100% safe & encrypted' },
-  { icon: RefreshCw,  title: 'Easy Returns',   desc: '7-day return policy' },
-  { icon: Headphones, title: '24/7 Support',   desc: 'Always here to help' },
-];
 
 // ── Hero Banner Slider ────────────────────────────────────────────────────────
 function HeroBanner({ banners, settings }) {
@@ -445,24 +438,7 @@ export default function Home() {
       {/* Hero Banner */}
       <HeroBanner banners={banners} settings={settings} />
 
-      {/* Features strip */}
-      <section style={{ background: '#fff', borderBottom: '1px solid #f3f4f6', padding: '24px 0' }}>
-        <div className="wrap">
-          <div className="grid-features">
-            {FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div key={title} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 38, height: 38, background: '#fff7ed', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size={17} color="#f97316" />
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{title}</div>
-                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>{desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* Dynamic sections OR default layout */}
       {hasCustomSections ? (

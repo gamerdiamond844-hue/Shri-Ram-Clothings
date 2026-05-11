@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart, Star, ChevronLeft, ChevronRight, Truck, Shield, RefreshCw, Minus, Plus, ArrowLeft, Ruler, X } from 'lucide-react';
+import { ShoppingCart, Heart, Star, ChevronLeft, ChevronRight, Minus, Plus, ArrowLeft, Ruler, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -341,15 +341,6 @@ export default function ProductDetail() {
                 style={{ width: 52, height: 52, borderRadius: 12, border: `2px solid ${wishlisted ? '#fca5a5' : '#e5e7eb'}`, background: wishlisted ? '#fef2f2' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s' }}>
                 <Heart size={18} color={wishlisted ? '#ef4444' : '#9ca3af'} fill={wishlisted ? '#ef4444' : 'none'} />
               </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-              {[{ icon: Truck, text: 'Free above ₹999' }, { icon: Shield, text: 'Secure Payment' }, { icon: RefreshCw, text: '7-Day Returns' }].map(({ icon: Icon, text }) => (
-                <div key={text} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', background: '#f9fafb', borderRadius: 12, textAlign: 'center' }}>
-                  <Icon size={16} color="#f97316" />
-                  <p style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, lineHeight: 1.3 }}>{text}</p>
-                </div>
-              ))}
             </div>
 
             {product.description && (

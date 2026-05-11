@@ -47,14 +47,6 @@ const POLICY_LINKS = [
   ['Legal Notice', '/legal'],
 ];
 
-const TRUST_BADGES = [
-  { icon: '', label: 'Secure Payments' },
-  { icon: '', label: 'Fast Delivery' },
-  { icon: '↩', label: 'Easy Returns' },
-  { icon: '', label: 'Premium Quality' },
-  { icon: '', label: '100% Authentic' },
-];
-
 const CATEGORIES = [
   ['T-Shirts', '/shop?category=t-shirts'],
   ['Shirts', '/shop?category=shirts'],
@@ -134,20 +126,6 @@ export default function Footer() {
   return (
     <>
       <footer style={{ background: 'linear-gradient(180deg, #0f172a 0%, #111827 100%)', color: '#9ca3af', borderTop: '1px solid rgba(249,115,22,0.15)' }}>
-
-        {/* ── Trust Badges Strip ── */}
-        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '18px 0' }}>
-          <div className="wrap">
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px 32px' }}>
-              {TRUST_BADGES.map(({ icon, label }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18 }}>{icon}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.03em' }}>{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* ── Newsletter Strip ── */}
         <div style={{ background: 'rgba(249,115,22,0.06)', borderBottom: '1px solid rgba(249,115,22,0.1)', padding: '28px 0' }}>
