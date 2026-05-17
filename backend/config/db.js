@@ -163,8 +163,15 @@ const initDB = async () => {
         product_id INTEGER REFERENCES src_products(id) ON DELETE CASCADE,
         order_id INTEGER REFERENCES src_orders(id) ON DELETE SET NULL,
         rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        rating_label VARCHAR(50) NOT NULL DEFAULT 'Excellent',
+        suggestion VARCHAR(150),
         comment TEXT,
+        image_url TEXT,
+        is_hidden BOOLEAN DEFAULT FALSE,
+        is_pinned BOOLEAN DEFAULT FALSE,
+        admin_note TEXT,
         created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
         UNIQUE(user_id, product_id)
       );
 
