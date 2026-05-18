@@ -352,7 +352,6 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Premium Review Section */}
         <ReviewSection
           productId={id}
           reviews={product.reviews || []}
