@@ -22,9 +22,32 @@ const client = axios.create({
   timeout: 15000,
 });
 
+const getFirstItem = (value) => {
+  if (Array.isArray(value)) return value[0];
+  if (value && typeof value === 'object') return value;
+  return null;
+};
+
 const normalizePackage = (data) => {
-  const pkg = data?.packages?.[0] || data?.data?.packages?.[0] || data?.package?.[0] || data?.data?.package?.[0];
-  return pkg;
+  if (data === true || data === 'true') return null;
+  if (typeof data === 'string') {
+    try { data = JSON.parse(data); } catch (err) { return null; }
+  }
+  if (!data || typeof data !== 'object') return null;
+
+  return getFirstItem(data.packages)
+    || getFirstItem(data.data?.packages)
+    || getFirstItem(data.package)
+    || getFirstItem(data.data?.package)
+    || getFirstItem(data.Response?.Packages?.Package)
+    || getFirstItem(data.response?.Packages?.Package)
+    || getFirstItem(data.Response?.Package)
+    || getFirstItem(data.response?.Package)
+    || getFirstItem(data.data?.Response?.Packages?.Package)
+    || getFirstItem(data.data?.response?.Packages?.Package)
+    || getFirstItem(data.data?.Response?.Package)
+    || getFirstItem(data.data?.response?.Package)
+    || null;
 };
 
 const normalizeShipmentData = (data) => {
@@ -34,6 +57,19 @@ const normalizeShipmentData = (data) => {
     : data?.data?.shipmentData?.length ? data.data.shipmentData
     : null;
 };
+
+const cleanPayload = (obj) => Object.entries(obj).reduce((acc, [key, value]) => {
+  if (value === undefined || value === null || value === '') return acc;
+  if (Array.isArray(value) && value.length === 0) return acc;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const nested = cleanPayload(value);
+    if (Object.keys(nested).length === 0) return acc;
+    acc[key] = nested;
+    return acc;
+  }
+  acc[key] = value;
+  return acc;
+}, {});
 
 // ── Create shipment (generate AWB) ───────────────────────────────────────────
 const createShipment = async (order) => {
@@ -70,24 +106,30 @@ const createShipment = async (order) => {
       shipment_width: '15',
       shipment_height: '10',
       shipment_length: '20',
-      seller_gst_tin: process.env.DELHIVERY_GST || '',
+      seller_gst_tin: process.env.DELHIVERY_GST || undefined,
       shipping_mode: 'Surface',
       address_type: 'home',
     }],
-    pickup_location: { name: process.env.DELHIVERY_PICKUP_NAME || 'Primary' },
+    pickup_location: process.env.DELHIVERY_PICKUP_NAME || 'Primary',
+    pickup_date: process.env.DELHIVERY_PICKUP_DATE || new Date().toISOString().split('T')[0],
+    pickup_start_time: process.env.DELHIVERY_PICKUP_START_TIME || '09:00:00',
+    pickup_end_time: process.env.DELHIVERY_PICKUP_END_TIME || '18:00:00',
   };
 
+  const cleanedData = cleanPayload(dataObj);
   const form = new URLSearchParams();
   form.set('format', 'json');
-  form.set('data', JSON.stringify(dataObj));
+  form.set('data', JSON.stringify(cleanedData));
 
-  const res = await client.post('/api/cmu/create.json', form, {
+  const res = await client.post('/api/cmu/create.json', form.toString(), {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
 
   const pkg = normalizePackage(res.data);
   if (!pkg) {
-    const message = res.data?.Error || res.data?.error || JSON.stringify(res.data || {});
+    const message = res.data === true || res.data === 'true'
+      ? 'Unexpected boolean response from Delhivery'
+      : res.data?.Error || res.data?.error || JSON.stringify(res.data || {});
     throw new Error(`No package returned from Delhivery: ${message}`);
   }
   if (pkg.status === 'Error' || pkg.status === 'error') {
