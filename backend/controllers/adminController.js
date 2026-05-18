@@ -280,7 +280,7 @@ const exportAnalytics = async (req, res) => {
         ROUND(o.total::numeric, 2)                    AS "Total Amount (INR)",
         o.payment_method                              AS "Payment Method",
         o.payment_status                              AS "Payment Status",
-        COALESCE(o.razorpay_payment_id, '')           AS "Transaction ID",
+        COALESCE(o.paytm_txn_id, COALESCE(o.razorpay_payment_id, ''))           AS "Transaction ID",
         o.status                                      AS "Order Status",
         TO_CHAR(o.created_at, 'DD-Mon-YYYY HH24:MI') AS "Order Date & Time"
       FROM src_orders o
@@ -312,7 +312,7 @@ const exportAnalytics = async (req, res) => {
     // ── SHEET 4: TRANSACTIONS ─────────────────────────────────────────────────
     const txResult = await pool.query(`
       SELECT
-        COALESCE(o.razorpay_payment_id, 'N/A')        AS "Transaction ID",
+        COALESCE(o.paytm_txn_id, COALESCE(o.razorpay_payment_id, 'N/A'))        AS "Transaction ID",
         o.order_id                                    AS "Order ID",
         o.full_name                                   AS "Customer",
         o.email                                       AS "Email",

@@ -1,83 +1,134 @@
-const Razorpay = require('razorpay');
+const PaytmChecksum = require('paytmchecksum');
 const crypto = require('crypto');
 const { pool } = require('../config/db');
 const { sendOrderEmail } = require('./authController');
 
 // Lazy init so the whole API doesn't crash on boot if env vars are missing.
 // If Razorpay keys are not configured, only payment endpoints will return an error.
-let _razorpay = null;
-const getRazorpay = () => {
-  const key_id = process.env.RAZORPAY_KEY_ID;
-  const key_secret = process.env.RAZORPAY_KEY_SECRET;
-  if (!key_id || !key_secret) {
-    throw new Error('Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.');
-  }
-  if (!_razorpay) _razorpay = new Razorpay({ key_id, key_secret });
-  return _razorpay;
-};
+// Paytm integration handled via server-side checksum generation and verification
 
 const generateOrderId = () => 'SRC' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 5).toUpperCase();
 
-const createRazorpayOrder = async (req, res) => {
-  const { amount } = req.body;
-  if (!amount) return res.status(400).json({ message: 'Amount required' });
-  try {
-    const razorpay = getRazorpay();
-    const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100),
-      currency: 'INR',
-      receipt: generateOrderId(),
-    });
-    res.json({ razorpay_order_id: order.id, amount: order.amount, currency: order.currency, key: process.env.RAZORPAY_KEY_ID });
-  } catch (err) {
-    res.status(500).json({ message: 'Payment gateway error: ' + err.message });
-  }
-};
-
-const placeOrder = async (req, res) => {
+// Create Paytm payment parameters and an order record (order stays pending until verification)
+const createPaytmInitiate = async (req, res) => {
   const {
     items, subtotal, discount_amount = 0, total, coupon_code,
     delivery_charge = 0, free_delivery_applied = false,
     full_name, mobile, email, address, city, state, pincode, landmark, notes,
-    razorpay_order_id, razorpay_payment_id, razorpay_signature, payment_method = 'razorpay'
   } = req.body;
 
   if (!items?.length || !total || !full_name || !mobile || !address)
     return res.status(400).json({ message: 'Missing required order fields' });
 
-  // Verify Razorpay signature
-  if (razorpay_payment_id && razorpay_signature) {
-    if (!process.env.RAZORPAY_KEY_SECRET) {
-      return res.status(500).json({ message: 'Payment verification failed: Razorpay secret is not configured' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const orderId = generateOrderId();
+
+    const orderResult = await client.query(
+      `INSERT INTO src_orders (order_id, user_id, subtotal, discount_amount, total, coupon_code,
+        free_delivery_applied, delivery_charge,
+        payment_method, payment_status,
+        full_name, mobile, email, address, city, state, pincode, landmark, notes, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+       RETURNING *`,
+      [orderId, req.user.id, subtotal, discount_amount, total, coupon_code || null,
+       !!free_delivery_applied, Number(delivery_charge) || 0,
+       'paytm', 'pending',
+       full_name, mobile, email, address, city, state, pincode, landmark || null, notes || null,
+       'pending']
+    );
+    const order = orderResult.rows[0];
+
+    // Insert order items but do NOT reduce stock until payment is verified
+    for (const item of items) {
+      await client.query(
+        `INSERT INTO src_order_items (order_id, product_id, variant_id, title, size, price, quantity, image_url)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [order.id, item.product_id, item.variant_id, item.title, item.size, item.price, item.quantity, item.image_url]
+      );
     }
-    const body = razorpay_order_id + '|' + razorpay_payment_id;
-    const expectedSig = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET).update(body).digest('hex');
-    if (expectedSig !== razorpay_signature)
-      return res.status(400).json({ message: 'Payment verification failed' });
+
+    // Update coupon usage only after successful payment to avoid false increments
+
+    // Clear cart
+    await client.query('DELETE FROM src_cart WHERE user_id=$1', [req.user.id]);
+
+    await client.query('COMMIT');
+
+    // Prepare Paytm params
+    const mid = process.env.PAYTM_MID;
+    const mkey = process.env.PAYTM_MKEY;
+    const website = process.env.PAYTM_WEBSITE;
+    const industry = process.env.PAYTM_INDUSTRY_TYPE;
+    const channel = process.env.PAYTM_CHANNEL_ID || 'WEB';
+    const callbackUrl = process.env.PAYTM_CALLBACK_URL;
+
+    if (!mid || !mkey || !website || !industry || !callbackUrl) {
+      return res.status(500).json({ message: 'Paytm is not configured. Set PAYTM_* env vars.' });
+    }
+
+    const paytmParams = {
+      MID: mid,
+      WEBSITE: website,
+      CHANNEL_ID: channel,
+      INDUSTRY_TYPE_ID: industry,
+      ORDER_ID: order.order_id,
+      CUST_ID: String(req.user.id),
+      TXN_AMOUNT: String(Number(total).toFixed(2)),
+      CALLBACK_URL: callbackUrl,
+    };
+
+    const checksum = await PaytmChecksum.generateSignature(paytmParams, mkey);
+    paytmParams.CHECKSUMHASH = checksum;
+
+    const paytmEnv = (process.env.PAYTM_ENV || 'staging').toLowerCase();
+    const paytmUrl = paytmEnv === 'production'
+      ? 'https://securegw.paytm.in/theia/processTransaction'
+      : 'https://securegw-stage.paytm.in/theia/processTransaction';
+
+    res.json({ paytmUrl, params: paytmParams, order_id: order.id });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ message: err.message });
+  } finally {
+    client.release();
   }
+};
+
+// Place order (for non-Paytm flows like COD) — retains original safe behavior
+const placeOrder = async (req, res) => {
+  const {
+    items, subtotal, discount_amount = 0, total, coupon_code,
+    delivery_charge = 0, free_delivery_applied = false,
+    full_name, mobile, email, address, city, state, pincode, landmark, notes,
+    payment_method = 'cod'
+  } = req.body;
+
+  if (!items?.length || !total || !full_name || !mobile || !address)
+    return res.status(400).json({ message: 'Missing required order fields' });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const orderId = generateOrderId();
-    const paymentStatus = razorpay_payment_id ? 'paid' : 'pending';
 
     const orderResult = await client.query(
       `INSERT INTO src_orders (order_id, user_id, subtotal, discount_amount, total, coupon_code,
         free_delivery_applied, delivery_charge,
-        payment_method, razorpay_order_id, razorpay_payment_id, razorpay_signature, payment_status,
+        payment_method, payment_status,
         full_name, mobile, email, address, city, state, pincode, landmark, notes, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
        RETURNING *`,
       [orderId, req.user.id, subtotal, discount_amount, total, coupon_code || null,
        !!free_delivery_applied, Number(delivery_charge) || 0,
-       payment_method, razorpay_order_id || null, razorpay_payment_id || null, razorpay_signature || null, paymentStatus,
+       payment_method, payment_method === 'cod' ? 'pending' : 'pending',
        full_name, mobile, email, address, city, state, pincode, landmark || null, notes || null,
-       paymentStatus === 'paid' ? 'confirmed' : 'pending']
+       payment_method === 'cod' ? 'confirmed' : 'pending']
     );
     const order = orderResult.rows[0];
 
-    // Insert order items and reduce stock
+    // Insert order items and reduce stock for COD immediately
     for (const item of items) {
       await client.query(
         `INSERT INTO src_order_items (order_id, product_id, variant_id, title, size, price, quantity, image_url)
@@ -118,6 +169,92 @@ const placeOrder = async (req, res) => {
     res.status(500).json({ message: err.message });
   } finally {
     client.release();
+  }
+};
+
+// Paytm callback handler — Paytm will POST transaction result here
+const paytmCallback = async (req, res) => {
+  const body = req.body || req.fields || {};
+  const mkey = process.env.PAYTM_MKEY;
+  try {
+    const checksum = body.CHECKSUMHASH;
+    const isValid = await PaytmChecksum.verifySignature(body, mkey, checksum);
+
+    const orderRow = await pool.query('SELECT * FROM src_orders WHERE order_id=$1', [body.ORDERID]);
+    if (!orderRow.rows.length) {
+      // Unknown order, respond OK to Paytm but log
+      return res.status(200).send('OK');
+    }
+    const order = orderRow.rows[0];
+
+    // Idempotency: if already paid, acknowledge
+    if (order.payment_status === 'paid') {
+      const redirectUrl = `${process.env.PAYTM_FRONTEND_URL}/order-success?orderId=${order.id}`;
+      return res.redirect(302, redirectUrl);
+    }
+
+    if (!isValid) {
+      // Invalid signature
+      await pool.query('UPDATE src_orders SET payment_status=$1 WHERE id=$2', ['failed', order.id]);
+      const redirectUrl = `${process.env.PAYTM_FRONTEND_URL}/order-failed?orderId=${order.id}`;
+      return res.redirect(302, redirectUrl);
+    }
+
+    // Verify amount
+    const txnAmount = Number(body.TXNAMOUNT || body.TXN_AMOUNT || 0);
+    if (Math.abs(txnAmount - Number(order.total)) > 0.01) {
+      await pool.query('UPDATE src_orders SET payment_status=$1 WHERE id=$2', ['failed', order.id]);
+      const redirectUrl = `${process.env.PAYTM_FRONTEND_URL}/order-failed?orderId=${order.id}`;
+      return res.redirect(302, redirectUrl);
+    }
+
+    if ((body.STATUS || body.STATUS) === 'TXN_SUCCESS' || (body.STATUS === 'TXN_SUCCESS')) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(
+          `UPDATE src_orders SET payment_status=$1, paytm_txn_id=$2, paytm_order_id=$3, paytm_signature=$4, status=$5, updated_at=NOW() WHERE id=$6`,
+          ['paid', body.TXNID || null, body.ORDERID || null, checksum || null, 'confirmed', order.id]
+        );
+
+        // Reduce stock for order items
+        const itemsRes = await client.query('SELECT * FROM src_order_items WHERE order_id=$1', [order.id]);
+        for (const item of itemsRes.rows) {
+          await client.query('UPDATE src_product_variants SET stock=stock-$1 WHERE id=$2 AND stock>=$1', [item.quantity, item.variant_id]);
+        }
+
+        // Update coupon usage
+        if (order.coupon_code) {
+          await client.query('UPDATE src_coupons SET used_count=used_count+1 WHERE code=$1', [order.coupon_code]);
+        }
+
+        // Notification
+        await client.query(`INSERT INTO src_notifications (user_id, message, type) VALUES ($1,$2,'order')`, [order.user_id, `Order #${order.order_id} placed successfully! Total: ₹${order.total}`]);
+
+        await client.query('COMMIT');
+
+        // Send order confirmation email (non-blocking)
+        const userRes = await pool.query('SELECT name, email FROM src_users WHERE id=$1', [order.user_id]);
+        if (userRes.rows.length) {
+          sendOrderEmail(userRes.rows[0].email, userRes.rows[0].name, order.order_id, order.total, itemsRes.rows).catch(() => {});
+        }
+
+        const redirectUrl = `${process.env.PAYTM_FRONTEND_URL}/order-success?orderId=${order.id}`;
+        return res.redirect(302, redirectUrl);
+      } catch (err) {
+        await client.query('ROLLBACK');
+        return res.status(500).send('Internal error');
+      } finally {
+        client.release();
+      }
+    }
+
+    // Other statuses
+    await pool.query('UPDATE src_orders SET payment_status=$1 WHERE id=$2', ['failed', order.id]);
+    const redirectUrl = `${process.env.PAYTM_FRONTEND_URL}/order-failed?orderId=${order.id}`;
+    return res.redirect(302, redirectUrl);
+  } catch (err) {
+    return res.status(500).send('Error processing callback');
   }
 };
 
@@ -175,4 +312,4 @@ const validateCoupon = async (req, res) => {
   }
 };
 
-module.exports = { createRazorpayOrder, placeOrder, getMyOrders, getOrderById, validateCoupon };
+module.exports = { createPaytmInitiate, paytmCallback, placeOrder, getMyOrders, getOrderById, validateCoupon };

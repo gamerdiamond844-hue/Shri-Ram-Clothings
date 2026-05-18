@@ -57,7 +57,7 @@ export default function PrivacyPolicy() {
             'Order history, order IDs, and purchase records',
             'Payment method type (card, UPI, net banking, wallet)',
             'Transaction IDs and payment gateway references',
-            'Razorpay payment tokens and encrypted card metadata',
+            'Paytm payment tokens and encrypted card metadata',
             'Refund and return transaction records',
             'Coupon and discount usage history',
           ]} />
@@ -144,7 +144,7 @@ export default function PrivacyPolicy() {
           ]} />
         </Sub>
         <Sub title="6.2 Third-Party Tracking">
-          We use Google Analytics, Meta Pixel, Razorpay analytics, and other third-party tracking tools. These services may collect data independently under their own privacy policies. You may opt out of Google Analytics tracking at <strong>tools.google.com/dlpage/gaoptout</strong>.
+          We use Google Analytics, Meta Pixel, Paytm analytics, and other third-party tracking tools. These services may collect data independently under their own privacy policies. You may opt out of Google Analytics tracking at <strong>tools.google.com/dlpage/gaoptout</strong>.
         </Sub>
         <InfoBox>You may manage cookie preferences through your browser settings. Disabling essential cookies may impair platform functionality.</InfoBox>
       </Section>
@@ -152,7 +152,7 @@ export default function PrivacyPolicy() {
       <Section num="7" title="Data Sharing & Third-Party Disclosure">
         <Sub>We do not sell, rent, or trade your personal data. We share data only in the following circumstances:</Sub>
         <List items={[
-          'Payment Processors: Razorpay India Pvt Ltd for secure payment processing.',
+          'Payment Processors: Paytm Payments Private Limited for secure payment processing.',
           'Logistics Partners: Delhivery, Blue Dart, and other courier services for order fulfillment.',
           'Cloud Infrastructure: Amazon Web Services (AWS), Neon Database, and Cloudinary for data storage and media hosting.',
           'Communication Services: Email service providers for transactional and marketing emails.',

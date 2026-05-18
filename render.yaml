@@ -24,9 +24,21 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      - key: RAZORPAY_KEY_ID
+      - key: PAYTM_MID
         sync: false
-      - key: RAZORPAY_KEY_SECRET
+      - key: PAYTM_MKEY
+        sync: false
+      - key: PAYTM_WEBSITE
+        sync: false
+      - key: PAYTM_INDUSTRY_TYPE
+        sync: false
+      - key: PAYTM_CHANNEL_ID
+        sync: false
+      - key: PAYTM_CALLBACK_URL
+        sync: false
+      - key: PAYTM_FRONTEND_URL
+        sync: false
+      - key: PAYTM_ENV
         sync: false
       - key: ADMIN_SECRET_KEY
         sync: false

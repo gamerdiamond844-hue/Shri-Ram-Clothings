@@ -1,10 +1,22 @@
 import { useLocation, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import api from '../utils/api';
 import { CheckCircle, Package, ArrowRight, Truck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function OrderSuccess() {
   const { state } = useLocation();
-  const order = state?.order;
+  const orderFromState = state?.order;
+  const [order, setOrder] = useState(orderFromState || null);
+
+  useEffect(() => {
+    if (order) return;
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('orderId');
+    if (orderId) {
+      api.get(`/orders/${orderId}`).then(r => setOrder(r.data)).catch(() => {});
+    }
+  }, [order]);
 
   return (
     <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>

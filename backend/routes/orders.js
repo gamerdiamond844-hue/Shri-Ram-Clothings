@@ -1,8 +1,9 @@
 const router = require('express').Router();
 const { auth } = require('../middleware/auth');
-const { createRazorpayOrder, placeOrder, getMyOrders, getOrderById, validateCoupon } = require('../controllers/orderController');
+const { createPaytmInitiate, paytmCallback, placeOrder, getMyOrders, getOrderById, validateCoupon } = require('../controllers/orderController');
 
-router.post('/razorpay', auth, createRazorpayOrder);
+router.post('/paytm/initiate', auth, createPaytmInitiate);
+router.post('/paytm/callback', paytmCallback); // Paytm will POST here (no auth)
 router.post('/', auth, placeOrder);
 router.get('/my', auth, getMyOrders);
 router.get('/:id', auth, getOrderById);

@@ -69,7 +69,7 @@ export default function TermsConditions() {
 
       <Section num="5" title="Payments">
         <Sub title="5.1 Payment Methods">
-          We accept payments via Razorpay, which supports credit cards, debit cards, UPI, net banking, and digital wallets. All payment transactions are encrypted and processed securely by Razorpay India Pvt Ltd.
+          We accept payments via Paytm, which supports credit cards, debit cards, UPI, net banking, and digital wallets. All payment transactions are encrypted and processed securely by Paytm Payments Private Limited.
         </Sub>
         <Sub title="5.2 Payment Security">
           We do not store complete card details on our servers. All sensitive payment data is handled exclusively by our PCI-DSS compliant payment processor. You are responsible for ensuring that your payment method is authorized for use.

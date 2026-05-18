@@ -70,7 +70,7 @@ export default function RefundPolicy() {
         </Sub>
         <Sub title="4.2 Refund Timelines">
           <List items={[
-            'Razorpay / Credit Card / Debit Card: 5–7 business days after approval',
+            'Paytm / Credit Card / Debit Card: 5–7 business days after approval',
             'UPI / Net Banking: 3–5 business days after approval',
             'Digital Wallets: 2–3 business days after approval',
             'Store Credit / Coupon: Issued within 24 hours of approval',

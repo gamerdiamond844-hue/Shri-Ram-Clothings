@@ -58,36 +58,34 @@ export default function Checkout() {
     if (!selectedAddr) return toast.error('Please select a delivery address');
     setPlacing(true);
     try {
-      const rzpRes = await api.post('/orders/razorpay', { amount: finalTotal });
-      const { razorpay_order_id, amount, key } = rzpRes.data;
-      const options = {
-        key, amount, currency: 'INR', name: 'Shri Ram Clothings', description: 'Order Payment',
-        order_id: razorpay_order_id,
-        prefill: { name: selectedAddr.full_name, email: user.email, contact: selectedAddr.mobile },
-        theme: { color: '#f97316' },
-        handler: async (response) => {
-          try {
-            const orderItems = state.items.map(item => ({
-              product_id: item.product_id, variant_id: item.variant_id, title: item.title, size: item.size,
-              price: item.discount_percent > 0 ? Math.round(item.price * (1 - item.discount_percent / 100)) : item.price,
-              quantity: item.quantity, image_url: item.image_url,
-            }));
-            const res = await api.post('/orders', {
-              items: orderItems, subtotal: state.subtotal, discount_amount: state.discount,
-              total: finalTotal, delivery_charge: shippingCost,
-              free_delivery_applied: isFreeDelivery,
-              coupon_code: state.coupon_code, ...selectedAddr, email: user.email,
-              razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature, payment_method: 'razorpay',
-            });
-            navigate('/order-success', { state: { order: res.data.order } });
-          } catch (err) { toast.error('Order failed: ' + (err.response?.data?.message || err.message)); }
-        },
-        modal: { ondismiss: () => { setPlacing(false); toast.error('Payment cancelled'); } },
-      };
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', () => { toast.error('Payment failed'); setPlacing(false); });
-      rzp.open();
+      const orderItems = state.items.map(item => ({
+        product_id: item.product_id, variant_id: item.variant_id, title: item.title, size: item.size,
+        price: item.discount_percent > 0 ? Math.round(item.price * (1 - item.discount_percent / 100)) : item.price,
+        quantity: item.quantity, image_url: item.image_url,
+      }));
+
+      const res = await api.post('/orders/paytm/initiate', {
+        items: orderItems, subtotal: state.subtotal, discount_amount: state.discount,
+        total: finalTotal, delivery_charge: shippingCost,
+        free_delivery_applied: isFreeDelivery,
+        coupon_code: state.coupon_code, ...selectedAddr, email: user.email,
+      });
+
+      const { paytmUrl, params } = res.data;
+
+      // Build and submit a POST form to Paytm
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = paytmUrl;
+      form.style.display = 'none';
+      Object.keys(params).forEach(key => {
+        const inp = document.createElement('input');
+        inp.name = key;
+        inp.value = params[key];
+        form.appendChild(inp);
+      });
+      document.body.appendChild(form);
+      form.submit();
     } catch (err) { toast.error(err.response?.data?.message || 'Payment gateway error'); setPlacing(false); }
   };
 
@@ -203,7 +201,7 @@ export default function Checkout() {
               <CreditCard size={17} /> {placing ? 'Processing...' : 'Pay Now'}
             </button>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, color: '#9ca3af' }}>
-              <ShieldCheck size={13} color="#22c55e" /> 100% Secure · Powered by Razorpay
+              <ShieldCheck size={13} color="#22c55e" /> 100% Secure · Powered by Paytm
             </div>
           </div>
         </div>
