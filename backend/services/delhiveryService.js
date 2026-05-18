@@ -6,68 +6,96 @@ const BASE = process.env.DELHIVERY_MODE === 'production'
 
 const TOKEN = process.env.DELHIVERY_API_TOKEN;
 
+const assertConfigured = () => {
+  if (!TOKEN || TOKEN === 'undefined') {
+    throw new Error('DELHIVERY_API_TOKEN is missing. Set it in your .env file.');
+  }
+};
+
 const client = axios.create({
   baseURL: BASE,
   headers: {
     Authorization: `Token ${TOKEN}`,
     'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
   timeout: 15000,
 });
 
+const normalizePackage = (data) => {
+  const pkg = data?.packages?.[0] || data?.data?.packages?.[0] || data?.package?.[0] || data?.data?.package?.[0];
+  return pkg;
+};
+
+const normalizeShipmentData = (data) => {
+  return data?.ShipmentData?.length ? data.ShipmentData
+    : data?.shipmentData?.length ? data.shipmentData
+    : data?.data?.ShipmentData?.length ? data.data.ShipmentData
+    : data?.data?.shipmentData?.length ? data.data.shipmentData
+    : null;
+};
+
 // ── Create shipment (generate AWB) ───────────────────────────────────────────
 const createShipment = async (order) => {
-  const payload = {
-    format: 'json',
-    data: JSON.stringify({
-      shipments: [{
-        name: order.full_name,
-        add: order.address,
-        pin: order.pincode,
-        city: order.city,
-        state: order.state,
-        country: 'India',
-        phone: order.mobile,
-        order: order.order_id,
-        payment_mode: order.payment_status === 'paid' ? 'Prepaid' : 'COD',
-        return_pin: process.env.DELHIVERY_RETURN_PINCODE || '110001',
-        return_city: process.env.DELHIVERY_RETURN_CITY || 'Delhi',
-        return_phone: process.env.DELHIVERY_RETURN_PHONE || '9999999999',
-        return_name: 'Shri Ram Clothings',
-        return_add: process.env.DELHIVERY_RETURN_ADDRESS || 'Return Address',
-        return_state: process.env.DELHIVERY_RETURN_STATE || 'Delhi',
-        return_country: 'India',
-        products_desc: order.items?.map(i => i.title).join(', ') || 'Clothing',
-        hsn_code: '',
-        cod_amount: order.payment_status === 'paid' ? '0' : String(order.total),
-        order_date: new Date(order.created_at).toISOString().split('T')[0],
-        total_amount: String(order.total),
-        seller_add: process.env.DELHIVERY_RETURN_ADDRESS || 'Return Address',
-        seller_name: 'Shri Ram Clothings',
-        seller_inv: order.order_id,
-        quantity: String(order.items?.reduce((s, i) => s + i.quantity, 0) || 1),
-        weight: '0.5',
-        shipment_width: '15',
-        shipment_height: '10',
-        shipment_length: '20',
-        seller_gst_tin: process.env.DELHIVERY_GST || '',
-        shipping_mode: 'Surface',
-        address_type: 'home',
-      }],
-      pickup_location: { name: process.env.DELHIVERY_PICKUP_NAME || 'Primary' },
-    }),
+  assertConfigured();
+
+  const dataObj = {
+    shipments: [{
+      name: order.full_name,
+      add: order.address,
+      pin: order.pincode,
+      city: order.city,
+      state: order.state,
+      country: 'India',
+      phone: order.mobile,
+      order: order.order_id,
+      payment_mode: order.payment_status === 'paid' ? 'Prepaid' : 'COD',
+      return_pin: process.env.DELHIVERY_RETURN_PINCODE || '110001',
+      return_city: process.env.DELHIVERY_RETURN_CITY || 'Delhi',
+      return_phone: process.env.DELHIVERY_RETURN_PHONE || '9999999999',
+      return_name: 'Shri Ram Clothings',
+      return_add: process.env.DELHIVERY_RETURN_ADDRESS || 'Return Address',
+      return_state: process.env.DELHIVERY_RETURN_STATE || 'Delhi',
+      return_country: 'India',
+      products_desc: order.items?.map(i => i.title).join(', ') || 'Clothing',
+      hsn_code: '',
+      cod_amount: order.payment_status === 'paid' ? '0' : String(order.total),
+      order_date: new Date(order.created_at).toISOString().split('T')[0],
+      total_amount: String(order.total),
+      seller_add: process.env.DELHIVERY_RETURN_ADDRESS || 'Return Address',
+      seller_name: 'Shri Ram Clothings',
+      seller_inv: order.order_id,
+      quantity: String(order.items?.reduce((s, i) => s + i.quantity, 0) || 1),
+      weight: '0.5',
+      shipment_width: '15',
+      shipment_height: '10',
+      shipment_length: '20',
+      seller_gst_tin: process.env.DELHIVERY_GST || '',
+      shipping_mode: 'Surface',
+      address_type: 'home',
+    }],
+    pickup_location: { name: process.env.DELHIVERY_PICKUP_NAME || 'Primary' },
   };
 
-  const res = await client.post('/api/cmu/create.json', payload, {
+  const form = new URLSearchParams();
+  form.set('format', 'json');
+  form.set('data', JSON.stringify(dataObj));
+
+  const res = await client.post('/api/cmu/create.json', form, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
 
-  const pkg = res.data?.packages?.[0];
-  if (!pkg) throw new Error('No package returned from Delhivery');
-  if (pkg.status === 'Error') throw new Error(pkg.error_message || 'Delhivery error');
+  const pkg = normalizePackage(res.data);
+  if (!pkg) {
+    const message = res.data?.Error || res.data?.error || JSON.stringify(res.data || {});
+    throw new Error(`No package returned from Delhivery: ${message}`);
+  }
+  if (pkg.status === 'Error' || pkg.status === 'error') {
+    throw new Error(pkg.error_message || pkg.error || 'Delhivery error');
+  }
 
   return {
-    awb: pkg.waybill,
+    awb: pkg.waybill || pkg.waybill_number || pkg.awb || pkg.barcode,
     courier: 'Delhivery',
     status: 'processing',
   };
@@ -75,20 +103,22 @@ const createShipment = async (order) => {
 
 // ── Track shipment ────────────────────────────────────────────────────────────
 const trackShipment = async (awb) => {
-  const res = await client.get(`/api/v1/packages/json/?waybill=${awb}&verbose=true`);
+  assertConfigured();
+  const res = await client.get(`/api/v1/packages/json/?waybill=${encodeURIComponent(awb)}&verbose=true`);
   const data = res.data;
-  if (!data?.ShipmentData?.length) return null;
+  const shipmentData = normalizeShipmentData(data);
+  if (!shipmentData) return null;
 
-  const shipment = data.ShipmentData[0].Shipment;
-  const scans = shipment.Scans || [];
+  const shipment = shipmentData[0].Shipment;
+  const scans = shipment?.Scans || [];
 
   return {
     awb,
-    status: shipment.Status?.Status || 'processing',
-    statusCode: shipment.Status?.StatusCode || '',
-    location: shipment.Status?.StatusLocation || '',
-    estimatedDelivery: shipment.ExpectedDeliveryDate || null,
-    scans: scans.map(s => ({
+    status: shipment?.Status?.Status || shipment?.Status || 'processing',
+    statusCode: shipment?.Status?.StatusCode || '',
+    location: shipment?.Status?.StatusLocation || '',
+    estimatedDelivery: shipment?.ExpectedDeliveryDate || null,
+    scans: (scans || []).map(s => ({
       status: s.ScanDetail?.Scan || '',
       location: s.ScanDetail?.ScannedLocation || '',
       timestamp: s.ScanDetail?.ScanDateTime || '',
@@ -99,9 +129,12 @@ const trackShipment = async (awb) => {
 
 // ── Cancel shipment ───────────────────────────────────────────────────────────
 const cancelShipment = async (awb) => {
-  const res = await client.post('/api/p/edit', {
-    waybill: awb,
-    cancellation: true,
+  assertConfigured();
+  const form = new URLSearchParams();
+  form.set('waybill', awb);
+  form.set('cancellation', 'true');
+  const res = await client.post('/api/p/edit', form, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
   return res.data;
 };

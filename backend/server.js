@@ -5,18 +5,27 @@ const { initDB } = require('./config/db');
 
 const app = express();
 
+const normalizeOrigin = (o) => (o || '').trim().replace(/\/+$/, '');
+
+// Support single or comma-separated FRONTEND_URL values
+const envOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
+  ...envOrigins,
   'http://localhost:5173',
   'http://localhost:3000',
-].filter(Boolean);
+].map(normalizeOrigin);
 
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true); // allow server-to-server / curl
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    if (/\.vercel\.app$/.test(origin)) return cb(null, true);
-    if (/\.onrender\.com$/.test(origin)) return cb(null, true);
+    const o = normalizeOrigin(origin);
+    if (allowedOrigins.includes(o)) return cb(null, true);
+    if (/\.vercel\.app$/.test(o)) return cb(null, true);
+    if (/\.onrender\.com$/.test(o)) return cb(null, true);
     if (process.env.NODE_ENV !== 'production') return cb(null, true);
     return cb(new Error('CORS blocked: ' + origin));
   },

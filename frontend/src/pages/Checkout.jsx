@@ -30,9 +30,18 @@ export default function Checkout() {
   }, [state, navigate]);
 
   // Compute shipping cost
-  const isFreeDelivery = freeDelivery?.eligible || state.total >= 999;
+  // NOTE:
+  // Cart should send `total` = items total (after discount, before shipping).
+  // If user lands here with old state (where total already included shipping), fallback safely.
+  const baseTotal = Number.isFinite(state?.total)
+    ? state.total
+    : Number.isFinite(state?.finalTotal)
+      ? state.finalTotal
+      : 0;
+
+  const isFreeDelivery = freeDelivery?.eligible || baseTotal >= 999;
   const shippingCost = isFreeDelivery ? 0 : 99;
-  const finalTotal = state.total + shippingCost;
+  const finalTotal = baseTotal + shippingCost;
 
   const saveAddress = async (e) => {
     e.preventDefault();
@@ -66,7 +75,7 @@ export default function Checkout() {
             const res = await api.post('/orders', {
               items: orderItems, subtotal: state.subtotal, discount_amount: state.discount,
               total: finalTotal, delivery_charge: shippingCost,
-              free_delivery_applied: freeDelivery?.eligible || false,
+              free_delivery_applied: isFreeDelivery,
               coupon_code: state.coupon_code, ...selectedAddr, email: user.email,
               razorpay_order_id, razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature, payment_method: 'razorpay',

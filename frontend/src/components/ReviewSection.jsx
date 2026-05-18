@@ -4,22 +4,22 @@ import api from '../utils/api';
 import toast from 'react-hot-toast';
 
 const REVIEW_OPTIONS = [
-  { label: 'Excellent', rating: 5, subtext: 'Luxury craftsmanship, flawless fit.' },
-  { label: 'Very Good', rating: 4, subtext: 'Premium feel with refined comfort.' },
-  { label: 'Good', rating: 3, subtext: 'Elegant style and polished quality.' },
+  { label: 'Excellent', rating: 5, subtext: 'Excellent fit with comfortable quality.' },
+  { label: 'Very Good', rating: 4, subtext: 'Very good fit with dependable finish.' },
+  { label: 'Good', rating: 3, subtext: 'Good style with solid value.' },
 ];
 
 const REVIEW_SUGGESTIONS = [
-  'Premium quality product',
+  'Quality product',
   'Perfect fitting',
-  'Amazing fabric quality',
+  'Amazing fabric',
   'Worth the price',
   'Comfortable to wear',
-  'Luxury feel',
-  'Excellent stitching',
+  'Well stitched',
+  'Excellent construction',
   'Highly recommended',
-  'Modern trendy style',
-  'Premium packaging',
+  'Modern style',
+  'Fast delivery',
   'Stylish look',
   'Smooth shopping experience',
 ];
@@ -89,7 +89,7 @@ export default function ReviewSection({ productId, reviews = [], avgRating = 5, 
 
   const submitReview = async () => {
     if (!selectedRating || selectedRating < 3) {
-      return toast.error('Choose a premium review option first');
+      return toast.error('Choose a review option first');
     }
     setIsSubmitting(true);
     try {
@@ -188,8 +188,7 @@ export default function ReviewSection({ productId, reviews = [], avgRating = 5, 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between', padding: '20px', background: 'rgba(255,255,255,0.94)', borderRadius: 24, border: '1px solid rgba(229,231,235,0.8)', boxShadow: '0 30px 80px rgba(15,23,42,0.08)' }}>
           <div style={{ minWidth: 0, flex: '1 1 320px' }}>
             <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6b7280', marginBottom: 10 }}>Customer reviews</p>
-            <h2 style={{ fontSize: 32, lineHeight: 1.05, letterSpacing: '-0.03em', color: '#111827' }}>A luxurious review experience</h2>
-            <p style={{ maxWidth: 680, marginTop: 10, color: '#4b5563', fontSize: 15, lineHeight: 1.75 }}>Instant five-star review submission, premium suggestions and a trusted verified buyer showcase built for fashion-forward shoppers.</p>
+            <h2 style={{ fontSize: 32, lineHeight: 1.05, letterSpacing: '-0.03em', color: '#111827' }}>Real review section</h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 14, width: '100%', maxWidth: 420 }}>
             <div style={{ padding: 18, borderRadius: 22, background: '#111827', color: '#fff', minWidth: 0 }}>
@@ -203,9 +202,9 @@ export default function ReviewSection({ productId, reviews = [], avgRating = 5, 
               <p style={{ marginTop: 8, fontSize: 13, color: '#6b7280' }}>Built only for authenticated shoppers</p>
             </div>
             <div style={{ padding: 18, borderRadius: 22, background: '#f9fafb', minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, color: '#111827' }}><Star size={18} /> <span style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: '0.14em', fontWeight: 700 }}>Premium rating</span></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, color: '#111827' }}><Star size={18} /> <span style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: '0.14em', fontWeight: 700 }}>Rating</span></div>
               <div style={{ fontSize: 28, fontWeight: 700, color: '#111827' }}>{selectedLabel}</div>
-              <p style={{ marginTop: 8, fontSize: 13, color: '#6b7280' }}>Choose one of three curated review moods.</p>
+              <p style={{ marginTop: 8, fontSize: 13, color: '#6b7280' }}>Choose a rating and share your experience.</p>
             </div>
           </div>
         </div>
@@ -214,7 +213,7 @@ export default function ReviewSection({ productId, reviews = [], avgRating = 5, 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Write Review</p>
-              <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Select a premium rating and submit instantly — no page refresh, no clutter.</p>
+              <p style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>Select a rating and submit instantly — no page refresh, no clutter.</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button type="button" onClick={() => setSelectedRating(5)} style={{ padding: '10px 16px', borderRadius: 999, border: '1px solid #d1d5db', background: selectedRating === 5 ? '#111827' : '#fff', color: selectedRating === 5 ? '#fff' : '#111827', fontSize: 13, cursor: 'pointer' }}>Excellent</button>
@@ -257,7 +256,7 @@ export default function ReviewSection({ productId, reviews = [], avgRating = 5, 
             </div>
 
             <div style={{ display: 'grid', gap: 12 }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Premium review suggestions</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Review suggestions</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {REVIEW_SUGGESTIONS.map(suggestion => (
                   <button key={suggestion} type="button" onClick={() => handleSuggestionTap(suggestion)}
@@ -282,7 +281,7 @@ export default function ReviewSection({ productId, reviews = [], avgRating = 5, 
                 rows={4}
                 value={comment}
                 onChange={e => setComment(e.target.value.slice(0, 180))}
-                placeholder="A short premium note about fit, fabric or styling"
+                placeholder="A short note about fit, fabric, or styling"
                 style={{ width: '100%', minHeight: 112, borderRadius: 18, border: '1px solid rgba(229,231,235,0.9)', padding: 16, fontSize: 14, color: '#111827', background: '#fff', resize: 'vertical' }}
               />
             </div>
@@ -322,7 +321,7 @@ export default function ReviewSection({ productId, reviews = [], avgRating = 5, 
       <div style={{ display: 'grid', gap: 18 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Recent premium reviews</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Recent reviews</p>
             <p style={{ fontSize: 13, color: '#6b7280' }}>{reviewCount} verified product reviews · {displayAvgRating.toFixed(1)} average</p>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -368,7 +367,7 @@ export default function ReviewSection({ productId, reviews = [], avgRating = 5, 
           )) : (
             <div style={{ padding: 32, borderRadius: 24, textAlign: 'center', border: '1px dashed rgba(156,163,175,0.5)', background: '#fafafa' }}>
               <ImageIcon size={32} style={{ color: '#d1d5db', marginBottom: 14 }} />
-              <p style={{ fontSize: 14, color: '#6b7280' }}>No premium reviews yet. Be the first to share a luxury review.</p>
+              <p style={{ fontSize: 14, color: '#6b7280' }}>No reviews yet. Be the first to share your experience.</p>
             </div>
           )}
         </div>

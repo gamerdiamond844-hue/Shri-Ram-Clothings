@@ -156,7 +156,10 @@ export default function Cart() {
                   <span>Total</span><span>₹{finalTotal}</span>
                 </div>
               </div>
-              <button onClick={() => navigate('/checkout', { state: { items, subtotal, discount, total: finalTotal, coupon_code: coupon?.coupon?.code } })}
+              {/* IMPORTANT:
+                 Pass "total" as items total (after discount, before shipping).
+                 Checkout page will compute shipping again; sending finalTotal would double-charge shipping. */}
+              <button onClick={() => navigate('/checkout', { state: { items, subtotal, discount, total, shipping, finalTotal, coupon_code: coupon?.coupon?.code } })}
                 className="btn-orange" style={{ width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, marginTop: 16 }}>
                 Proceed to Checkout <ArrowRight size={16} />
               </button>

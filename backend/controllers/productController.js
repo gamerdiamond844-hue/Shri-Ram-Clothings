@@ -397,13 +397,14 @@ const exportReviews = async (req, res) => {
 };
 
 const updateReview = async (req, res) => {
-  const { is_hidden, is_pinned, admin_note } = req.body;
+  const { is_hidden, is_pinned, admin_note, remove_media } = req.body;
   try {
     const fields = [], values = [];
     let idx = 1;
     if (is_hidden !== undefined) { fields.push(`is_hidden=$${idx++}`); values.push(is_hidden); }
     if (is_pinned !== undefined) { fields.push(`is_pinned=$${idx++}`); values.push(is_pinned); }
     if (admin_note !== undefined) { fields.push(`admin_note=$${idx++}`); values.push(admin_note); }
+    if (remove_media === true || remove_media === 'true') { fields.push('image_url=NULL'); }
     if (!fields.length) return res.status(400).json({ message: 'Nothing to update' });
     values.push(req.params.reviewId);
     const result = await pool.query(`UPDATE src_reviews SET ${fields.join(',')} WHERE id=$${idx} RETURNING *`, values);

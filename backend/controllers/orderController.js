@@ -3,10 +3,18 @@ const crypto = require('crypto');
 const { pool } = require('../config/db');
 const { sendOrderEmail } = require('./authController');
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Lazy init so the whole API doesn't crash on boot if env vars are missing.
+// If Razorpay keys are not configured, only payment endpoints will return an error.
+let _razorpay = null;
+const getRazorpay = () => {
+  const key_id = process.env.RAZORPAY_KEY_ID;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!key_id || !key_secret) {
+    throw new Error('Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment variables.');
+  }
+  if (!_razorpay) _razorpay = new Razorpay({ key_id, key_secret });
+  return _razorpay;
+};
 
 const generateOrderId = () => 'SRC' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 5).toUpperCase();
 
@@ -14,6 +22,7 @@ const createRazorpayOrder = async (req, res) => {
   const { amount } = req.body;
   if (!amount) return res.status(400).json({ message: 'Amount required' });
   try {
+    const razorpay = getRazorpay();
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100),
       currency: 'INR',
@@ -28,6 +37,7 @@ const createRazorpayOrder = async (req, res) => {
 const placeOrder = async (req, res) => {
   const {
     items, subtotal, discount_amount = 0, total, coupon_code,
+    delivery_charge = 0, free_delivery_applied = false,
     full_name, mobile, email, address, city, state, pincode, landmark, notes,
     razorpay_order_id, razorpay_payment_id, razorpay_signature, payment_method = 'razorpay'
   } = req.body;
@@ -37,6 +47,9 @@ const placeOrder = async (req, res) => {
 
   // Verify Razorpay signature
   if (razorpay_payment_id && razorpay_signature) {
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(500).json({ message: 'Payment verification failed: Razorpay secret is not configured' });
+    }
     const body = razorpay_order_id + '|' + razorpay_payment_id;
     const expectedSig = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET).update(body).digest('hex');
     if (expectedSig !== razorpay_signature)
@@ -51,11 +64,13 @@ const placeOrder = async (req, res) => {
 
     const orderResult = await client.query(
       `INSERT INTO src_orders (order_id, user_id, subtotal, discount_amount, total, coupon_code,
+        free_delivery_applied, delivery_charge,
         payment_method, razorpay_order_id, razorpay_payment_id, razorpay_signature, payment_status,
         full_name, mobile, email, address, city, state, pincode, landmark, notes, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
        RETURNING *`,
       [orderId, req.user.id, subtotal, discount_amount, total, coupon_code || null,
+       !!free_delivery_applied, Number(delivery_charge) || 0,
        payment_method, razorpay_order_id || null, razorpay_payment_id || null, razorpay_signature || null, paymentStatus,
        full_name, mobile, email, address, city, state, pincode, landmark || null, notes || null,
        paymentStatus === 'paid' ? 'confirmed' : 'pending']

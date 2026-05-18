@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Star, Eye, EyeOff, Pin, Trash2, Search, CheckCircle, X, MessageSquare, Download, ArrowUpDown } from 'lucide-react';
+import { Star, Eye, EyeOff, Pin, Trash2, Search, CheckCircle, X, MessageSquare, Download, ArrowUpDown, Image } from 'lucide-react';
 import api, { downloadFile } from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -38,6 +38,7 @@ export default function AdminReviews() {
   const [updating, setUpdating] = useState(null);
   const [noteModal, setNoteModal] = useState(null);
   const [noteText, setNoteText] = useState('');
+  const [mediaModal, setMediaModal] = useState(null);
   const LIMIT = 20;
 
   const load = useCallback(async () => {
@@ -127,6 +128,8 @@ export default function AdminReviews() {
     setNoteModal(null);
     setNoteText('');
   };
+
+  const isImageUrl = url => typeof url === 'string' && /\.(jpe?g|png|gif|webp|avif|bmp|svg)$/i.test(url);
 
   const totalPages = Math.ceil(total / LIMIT);
 
@@ -228,7 +231,7 @@ export default function AdminReviews() {
                 <th style={{ padding: '10px 14px', width: 40 }}>
                   <input type="checkbox" checked={selectedReviews.length === reviews.length && reviews.length > 0} onChange={toggleSelectAll} />
                 </th>
-                {['Customer', 'Product', 'Rating', 'Review', 'Status', 'Date', 'Actions'].map(h => (
+                {['Customer', 'Product', 'Rating', 'Review', 'Media', 'Status', 'Date', 'Actions'].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -269,6 +272,22 @@ export default function AdminReviews() {
                     </p>
                     {r.admin_note && (
                       <p style={{ fontSize: 11, color: '#f97316', marginTop: 3, fontStyle: 'italic' }}>Note: {r.admin_note}</p>
+                    )}
+                  </td>
+
+                  <td style={{ padding: '12px 14px', maxWidth: 120 }}>
+                    {r.image_url ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                        {isImageUrl(r.image_url) ? (
+                          <img src={r.image_url} alt="Review media" style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover', cursor: 'pointer', border: '1px solid #e5e7eb' }} onClick={() => setMediaModal(r)} />
+                        ) : (
+                          <button type="button" onClick={() => setMediaModal(r)} style={{ borderRadius: 10, border: '1px solid #e5e7eb', padding: '8px 10px', background: '#fff', cursor: 'pointer', color: '#2563eb', fontSize: 12 }}>View file</button>
+                        )}
+                        <button type="button" onClick={() => update(r.id, { remove_media: true })} disabled={updating === r.id}
+                          style={{ borderRadius: 10, border: '1px solid #fee2e2', padding: '6px 10px', background: '#fef2f2', color: '#b91c1c', cursor: updating === r.id ? 'not-allowed' : 'pointer', fontSize: 11 }}>Remove media</button>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 11, color: '#9ca3af' }}>None</span>
                     )}
                   </td>
 
@@ -318,7 +337,7 @@ export default function AdminReviews() {
                 </tr>
               ))}
               {!loading && !reviews.length && (
-                <tr><td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+                <tr><td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
                   <Star size={28} style={{ margin: '0 auto 8px', opacity: 0.3, fill: '#e5e7eb', color: '#e5e7eb' }} />
                   No reviews found
                 </td></tr>
@@ -359,6 +378,27 @@ export default function AdminReviews() {
               </button>
               <button onClick={() => setNoteModal(null)} style={{ padding: '10px 16px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontSize: 13, color: '#374151' }}>Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {mediaModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div>
+                <p style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Review media</p>
+                <p style={{ fontSize: 12, color: '#6b7280' }}>{mediaModal.user_name} · {mediaModal.product_title}</p>
+              </div>
+              <button onClick={() => setMediaModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}><X size={18} /></button>
+            </div>
+            {isImageUrl(mediaModal.image_url) ? (
+              <img src={mediaModal.image_url} alt="Review media" style={{ width: '100%', borderRadius: 16, objectFit: 'contain', maxHeight: '70vh' }} />
+            ) : (
+              <a href={mediaModal.image_url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderRadius: 14, background: '#f3f4f6', color: '#2563eb', textDecoration: 'none', fontSize: 13 }}>
+                <Image size={16} /> Open uploaded file
+              </a>
+            )}
           </div>
         </div>
       )}
