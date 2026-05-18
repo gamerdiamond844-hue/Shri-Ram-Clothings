@@ -9,6 +9,14 @@ const {
 
 router.get('/categories', getCategories);
 router.get('/', getProducts);
+
+// Admin review management
+router.get('/admin/reviews/export', auth, requireRole('admin'), exportReviews);
+router.get('/admin/reviews', auth, requireRole('admin'), getAdminReviews);
+router.get('/admin/reviews/stats', auth, requireRole('admin'), getReviewStats);
+router.put('/admin/reviews/:reviewId', auth, requireRole('admin'), updateReview);
+router.delete('/admin/reviews/:reviewId', auth, requireRole('admin'), deleteReview);
+
 router.get('/:id/reviews', getProductReviews);
 router.get('/:id', getProduct);
 router.post('/', auth, requireRole('seller', 'admin'), uploadProduct.array('images', 10), createProduct);
@@ -20,12 +28,5 @@ router.post('/:id/reviews', auth, uploadProduct.single('review_image'), addRevie
 router.post('/:id/images', auth, requireRole('admin'), uploadProduct.array('images', 10), addProductImages);
 router.delete('/:id/images/:imageId', auth, requireRole('admin'), deleteProductImage);
 router.put('/:id/images/:imageId/primary', auth, requireRole('admin'), setPrimaryImage);
-
-// Admin review management
-router.get('/admin/reviews/export', auth, requireRole('admin'), exportReviews);
-router.get('/admin/reviews', auth, requireRole('admin'), getAdminReviews);
-router.get('/admin/reviews/stats', auth, requireRole('admin'), getReviewStats);
-router.put('/admin/reviews/:reviewId', auth, requireRole('admin'), updateReview);
-router.delete('/admin/reviews/:reviewId', auth, requireRole('admin'), deleteReview);
 
 module.exports = router;
