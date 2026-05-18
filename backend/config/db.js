@@ -326,6 +326,16 @@ const initDB = async () => {
 
       ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS free_delivery_applied BOOLEAN DEFAULT FALSE;
       ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS delivery_charge DECIMAL(10,2) DEFAULT 0;
+
+      ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS rating_label VARCHAR(50) NOT NULL DEFAULT 'Excellent';
+      ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS suggestion VARCHAR(150);
+      ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS comment TEXT;
+      ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS image_url TEXT;
+      ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT FALSE;
+      ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE;
+      ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS admin_note TEXT;
+      ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
+      ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
     `).catch(() => {});
 
     // Tracking logs table
