@@ -5,10 +5,17 @@ const BASE = process.env.DELHIVERY_MODE === 'production'
   : 'https://staging-express.delhivery.com';
 
 const TOKEN = process.env.DELHIVERY_API_TOKEN;
+const PICKUP_LOCATION = process.env.DELHIVERY_PICKUP_NAME;
+const PICKUP_DATE = process.env.DELHIVERY_PICKUP_DATE || new Date().toISOString().split('T')[0];
+const PICKUP_START_TIME = process.env.DELHIVERY_PICKUP_START_TIME || '09:00:00';
+const PICKUP_END_TIME = process.env.DELHIVERY_PICKUP_END_TIME || '18:00:00';
 
 const assertConfigured = () => {
   if (!TOKEN || TOKEN === 'undefined') {
-    throw new Error('DELHIVERY_API_TOKEN is missing. Set it in your .env file.');
+    throw new Error('DELHIVERY_API_TOKEN is missing. Set it in your environment.');
+  }
+  if (!PICKUP_LOCATION || PICKUP_LOCATION === 'undefined') {
+    throw new Error('DELHIVERY_PICKUP_NAME is missing. Set the Delhivery pickup location name in your environment.');
   }
 };
 
@@ -109,11 +116,15 @@ const createShipment = async (order) => {
       seller_gst_tin: process.env.DELHIVERY_GST || undefined,
       shipping_mode: 'Surface',
       address_type: 'home',
+      pickup_location: PICKUP_LOCATION,
+      pickup_date: { start_date: PICKUP_DATE, end_date: PICKUP_DATE },
+      pickup_time: { start_time: PICKUP_START_TIME, end_time: PICKUP_END_TIME },
     }],
-    pickup_location: process.env.DELHIVERY_PICKUP_NAME || 'Primary',
-    pickup_date: process.env.DELHIVERY_PICKUP_DATE || new Date().toISOString().split('T')[0],
-    pickup_start_time: process.env.DELHIVERY_PICKUP_START_TIME || '09:00:00',
-    pickup_end_time: process.env.DELHIVERY_PICKUP_END_TIME || '18:00:00',
+    pickup_location: PICKUP_LOCATION,
+    pickup_date: { start_date: PICKUP_DATE, end_date: PICKUP_DATE },
+    pickup_time: { start_time: PICKUP_START_TIME, end_time: PICKUP_END_TIME },
+    pickup_start_time: PICKUP_START_TIME,
+    pickup_end_time: PICKUP_END_TIME,
   };
 
   const cleanedData = cleanPayload(dataObj);
@@ -127,10 +138,15 @@ const createShipment = async (order) => {
 
   const pkg = normalizePackage(res.data);
   if (!pkg) {
-    const message = res.data === true || res.data === 'true'
-      ? 'Unexpected boolean response from Delhivery'
-      : res.data?.Error || res.data?.error || JSON.stringify(res.data || {});
-    throw new Error(`No package returned from Delhivery: ${message}`);
+    const messageParts = [];
+    if (res.data === true || res.data === 'true') {
+      messageParts.push('Unexpected boolean response from Delhivery');
+    }
+    if (res.data?.rmk) messageParts.push(res.data.rmk);
+    if (res.data?.Error) messageParts.push(res.data.Error);
+    if (res.data?.error && typeof res.data.error === 'string') messageParts.push(res.data.error);
+    if (!messageParts.length) messageParts.push(JSON.stringify(res.data || {}));
+    throw new Error(`No package returned from Delhivery: ${messageParts.join(' | ')}`);
   }
   if (pkg.status === 'Error' || pkg.status === 'error') {
     throw new Error(pkg.error_message || pkg.error || 'Delhivery error');
