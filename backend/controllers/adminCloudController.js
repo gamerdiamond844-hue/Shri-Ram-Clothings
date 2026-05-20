@@ -70,6 +70,18 @@ const uploadFiles = async (req, res) => {
 
     const inserted = [];
     for (const file of req.files) {
+      const publicId = file.filename || file.public_id || null;
+      const secureUrl = file.path || file.secure_url || null;
+      const resourceType = file.mimetype.startsWith('image/') ? 'image'
+        : file.mimetype.startsWith('video/') ? 'video'
+          : file.mimetype.startsWith('audio/') ? 'audio'
+            : 'raw';
+      const format = file.format || file.mimetype.split('/')[1] || null;
+
+      if (!publicId || !secureUrl) {
+        throw new Error('Cloudinary upload response missing public_id or secure_url');
+      }
+
       const result = await client.query(
         `INSERT INTO src_admin_cloud_files (
           public_id, original_filename, display_name, description, folder_id,
@@ -79,20 +91,20 @@ const uploadFiles = async (req, res) => {
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
         RETURNING *`,
         [
-          file.public_id,
+          publicId,
           file.originalname,
           file.originalname,
           null,
           folderId,
-          file.mimetype.startsWith('image/') ? 'image' : file.mimetype.startsWith('video/') ? 'video' : file.mimetype.startsWith('audio/') ? 'audio' : 'raw',
-          file.format || file.mimetype.split('/')[1],
+          resourceType,
+          format,
           file.mimetype,
           file.size,
           file.width || null,
           file.height || null,
-          file.secure_url,
-          getThumbnailUrl(file.public_id, file.resource_type, file.format) || file.secure_url,
-          file.secure_url,
+          secureUrl,
+          getThumbnailUrl(publicId, resourceType, format) || secureUrl,
+          secureUrl,
           JSON.stringify({ bytes: file.size, original_name: file.originalname }),
           [],
           'active',
