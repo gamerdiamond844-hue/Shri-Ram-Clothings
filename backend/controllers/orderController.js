@@ -30,7 +30,7 @@ const createPaytmInitiate = async (req, res) => {
         free_delivery_applied, delivery_charge,
         payment_method, payment_status,
         full_name, mobile, email, address, city, state, pincode, landmark, notes, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
        RETURNING *`,
       [orderId, req.user.id, subtotal, discount_amount, total, coupon_code || null,
        !!free_delivery_applied, Number(delivery_charge) || 0,
@@ -118,7 +118,7 @@ const placeOrder = async (req, res) => {
         free_delivery_applied, delivery_charge,
         payment_method, payment_status,
         full_name, mobile, email, address, city, state, pincode, landmark, notes, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
        RETURNING *`,
       [orderId, req.user.id, subtotal, discount_amount, total, coupon_code || null,
        !!free_delivery_applied, Number(delivery_charge) || 0,

@@ -1,7 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingBag, Tag, FolderOpen, LogOut, Menu, X, Layout, MessageSquare, Bell, Users, Truck, Star } from 'lucide-react';
+
+const formatBytes = (bytes) => {
+  if (!bytes) return '0 B';
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+};
+import { LayoutDashboard, Package, ShoppingBag, Tag, FolderOpen, LogOut, Menu, X, Layout, MessageSquare, Bell, Users, Truck, Star, Cloud } from 'lucide-react';
+import api from '../../utils/api';
 import AdminOverview from './AdminOverview';
 import AdminProducts from './AdminProducts';
 import AdminOrders from './AdminOrders';
@@ -13,6 +21,7 @@ import AdminQueries from './AdminQueries';
 import AdminNotifications from './AdminNotifications';
 import AdminUsers from './AdminUsers';
 import AdminReviews from './AdminReviews';
+import AdminCloudStorage from './AdminCloudStorage';
 
 const NAV = [
   { key: 'overview',       label: 'Overview',       icon: LayoutDashboard },
@@ -20,6 +29,7 @@ const NAV = [
   { key: 'products',       label: 'Products',       icon: Package },
   { key: 'orders',         label: 'Orders',         icon: ShoppingBag },
   { key: 'delivery',       label: 'Delivery',       icon: Truck },
+  { key: 'cloud',          label: 'Cloud Vault',     icon: Cloud },
   { key: 'reviews',        label: 'Reviews',        icon: Star },
   { key: 'users',          label: 'Users',          icon: Users },
   { key: 'queries',        label: 'Queries',        icon: MessageSquare },
@@ -34,6 +44,7 @@ const SECTIONS = {
   products:      <AdminProducts />,
   orders:        <AdminOrders />,
   delivery:      <AdminDelivery />,
+  cloud:         <AdminCloudStorage />,
   reviews:       <AdminReviews />,
   users:         <AdminUsers />,
   queries:       <AdminQueries />,
@@ -47,8 +58,17 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [section, setSection] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [cloudMetrics, setCloudMetrics] = useState(null);
 
   const handleLogout = () => { logout(); navigate('/'); };
+  const activeSection = section === 'overview' ? <AdminOverview onOpenCloud={() => setSection('cloud')} /> : SECTIONS[section];
+
+  useEffect(() => {
+    if (!user) return;
+    api.get('/admin/cloud/analytics')
+      .then((res) => setCloudMetrics(res.data))
+      .catch(() => setCloudMetrics(null));
+  }, [user]);
 
   const Sidebar = () => (
     <aside style={{
@@ -86,6 +106,12 @@ export default function AdminDashboard() {
           </button>
         ))}
       </nav>
+
+      <div style={{ padding: '14px 12px', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 6, display: 'grid', gap: 8 }}>
+        <div style={{ fontSize: 11, color: '#9ca3af', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Cloud usage</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{cloudMetrics ? formatBytes(cloudMetrics.total_bytes) : 'Loading...'}</div>
+        <div style={{ fontSize: 11, color: '#94a3b8' }}>{cloudMetrics ? `${cloudMetrics.total_files} files stored` : 'Secure admin vault'}</div>
+      </div>
 
       {/* User */}
       <div style={{ padding: '12px 10px 16px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
@@ -151,7 +177,7 @@ export default function AdminDashboard() {
 
         {/* Page content */}
         <main style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-          {SECTIONS[section]}
+          {activeSection}
         </main>
       </div>
     </div>

@@ -306,6 +306,59 @@ const initDB = async () => {
         last_reminded_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS src_admin_cloud_folders (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        slug VARCHAR(250) UNIQUE NOT NULL,
+        parent_id INTEGER REFERENCES src_admin_cloud_folders(id) ON DELETE CASCADE,
+        path TEXT NOT NULL,
+        created_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_admin_cloud_files (
+        id SERIAL PRIMARY KEY,
+        public_id TEXT NOT NULL,
+        original_filename VARCHAR(255) NOT NULL,
+        display_name VARCHAR(255) NOT NULL,
+        description TEXT,
+        folder_id INTEGER REFERENCES src_admin_cloud_folders(id) ON DELETE SET NULL,
+        resource_type VARCHAR(50) NOT NULL,
+        format VARCHAR(50),
+        mime_type VARCHAR(100),
+        size_bytes BIGINT DEFAULT 0,
+        width INTEGER,
+        height INTEGER,
+        secure_url TEXT NOT NULL,
+        thumbnail_url TEXT,
+        cdn_url TEXT NOT NULL,
+        metadata JSONB DEFAULT '{}',
+        tags TEXT[] DEFAULT ARRAY[]::TEXT[],
+        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active','archived','deleted')),
+        is_favorite BOOLEAN DEFAULT FALSE,
+        is_trashed BOOLEAN DEFAULT FALSE,
+        deleted_at TIMESTAMP,
+        uploaded_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        uploaded_at TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_admin_cloud_files_folder_id ON src_admin_cloud_files(folder_id);
+      CREATE INDEX IF NOT EXISTS idx_admin_cloud_files_is_trashed ON src_admin_cloud_files(is_trashed);
+      CREATE INDEX IF NOT EXISTS idx_admin_cloud_files_display_name ON src_admin_cloud_files USING gin (to_tsvector('english', display_name));
+      CREATE INDEX IF NOT EXISTS idx_admin_cloud_files_tags ON src_admin_cloud_files USING gin (tags);
+
+      CREATE TABLE IF NOT EXISTS src_admin_cloud_history (
+        id SERIAL PRIMARY KEY,
+        admin_id INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        file_id INTEGER REFERENCES src_admin_cloud_files(id) ON DELETE CASCADE,
+        folder_id INTEGER REFERENCES src_admin_cloud_folders(id) ON DELETE SET NULL,
+        action VARCHAR(50) NOT NULL,
+        details TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
     // ── Migrations: add columns if they don't exist ──

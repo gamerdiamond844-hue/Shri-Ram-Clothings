@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { IndianRupee, ShoppingBag, Users, Package, TrendingUp, TrendingDown, Download, RefreshCw, Calendar } from 'lucide-react';
+import { IndianRupee, ShoppingBag, Users, Package, TrendingUp, TrendingDown, Download, RefreshCw, Calendar, Cloud } from 'lucide-react';
 import api, { downloadFile } from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -103,7 +103,7 @@ const STATUS_STYLE = {
   refunded:   { bg: '#f3f4f6', color: '#374151' },
 };
 
-export default function AdminOverview() {
+export default function AdminOverview({ onOpenCloud }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('30d');
@@ -243,6 +243,20 @@ export default function AdminOverview() {
           <StatCard icon={RefreshCw} label="Refunded" value={fmt(m?.refunded)} bg="#f3f4f6" iconColor="#6b7280" />
         </div>
       )}
+
+      <div style={{ marginTop: 20, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 280px', background: '#fff', borderRadius: 18, border: '1px solid #f3f4f6', padding: '18px 20px', minWidth: 280 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            <Cloud size={18} color="#f97316" />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Cloud Vault</div>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>Admin-only secure storage</div>
+            </div>
+          </div>
+          <p style={{ fontSize: 13, color: '#4b5563', marginBottom: 16 }}>Open your private cloud storage, upload files, and access the secure admin drive from anywhere with a single click.</p>
+          <button onClick={onOpenCloud} style={{ borderRadius: 12, background: '#f97316', border: 'none', color: '#fff', padding: '11px 16px', cursor: 'pointer', fontWeight: 700 }}>Open Cloud Vault</button>
+        </div>
+      </div>
 
       {/* ── Comparison banner ── */}
       {!loading && cmp && (

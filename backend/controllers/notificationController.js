@@ -301,10 +301,8 @@ const requestPushFromUsers = async (req, res) => {
     let sent = 0;
     for (const user of result.rows) {
       await pool.query(
-        `INSERT INTO src_notifications (user_id, message, type)
-         VALUES ($1, $2, 'admin')
-         ON CONFLICT DO NOTHING`,
-        [user.id, '🔔 Enable push notifications to get alerts on new arrivals, flash sales and order updates. Go to Profile → Notifications → Enable Now.']
+        `INSERT INTO src_notifications (user_id, message, type) VALUES ($1, $2, $3)`,
+        [user.id, '🔔 Enable push notifications to get alerts on new arrivals, flash sales and order updates. Go to Profile → Notifications → Enable Now.', 'admin']
       );
       sent++;
     }
