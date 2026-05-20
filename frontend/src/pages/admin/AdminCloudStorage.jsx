@@ -64,10 +64,24 @@ const FilePreviewModal = ({ file, onClose, onAction }) => {
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{file.display_name}</h2>
             <p style={{ margin: '8px 0 0', color: '#cbd5e1', fontSize: 13 }}>{file.description || 'Private admin cloud asset'}</p>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button onClick={() => onAction('download', file)} style={{ border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.04)', color: '#fff', padding: '10px 14px', borderRadius: 14, cursor: 'pointer' }}>
               <DownloadCloud size={16} style={{ marginRight: 6 }} /> Download
             </button>
+            {!file.is_trashed ? (
+              <button onClick={() => onAction('trash', file)} style={{ border: '1px solid rgba(248,113,113,0.18)', background: 'rgba(248,113,113,0.1)', color: '#f87171', padding: '10px 14px', borderRadius: 14, cursor: 'pointer' }}>
+                <Trash2 size={16} style={{ marginRight: 6 }} /> Move to Trash
+              </button>
+            ) : (
+              <>
+                <button onClick={() => onAction('restore', file)} style={{ border: '1px solid rgba(34,197,94,0.18)', background: 'rgba(34,197,94,0.1)', color: '#4ade80', padding: '10px 14px', borderRadius: 14, cursor: 'pointer' }}>
+                  Restore
+                </button>
+                <button onClick={() => onAction('deletePermanent', file)} style={{ border: '1px solid rgba(248,113,113,0.18)', background: 'rgba(248,113,113,0.1)', color: '#f87171', padding: '10px 14px', borderRadius: 14, cursor: 'pointer' }}>
+                  Delete Forever
+                </button>
+              </>
+            )}
             <button onClick={onClose} style={{ border: 'none', background: 'rgba(248,250,252,0.08)', color: '#f8fafc', padding: '10px 14px', borderRadius: 14, cursor: 'pointer' }}>
               Close
             </button>
@@ -246,8 +260,8 @@ export default function AdminCloudStorage() {
   };
 
   const handleFileAction = async (action, file) => {
-    if (action === 'download') {
-      try {
+    try {
+      if (action === 'download') {
         const result = await api.get(`/admin/cloud/files/${file.id}/secure-url`);
         const link = document.createElement('a');
         link.href = result.data.url;
@@ -256,21 +270,26 @@ export default function AdminCloudStorage() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-      } catch (err) {
-        toast.error('Failed to generate secure download');
+        return;
       }
-    }
-  };
 
-  const handleTrashToggle = async (file, restore = false) => {
-    try {
-      if (restore) {
-        await api.put(`/admin/cloud/files/${file.id}/restore`);
-        toast.success('File restored');
-      } else {
+      if (action === 'trash') {
         await api.delete(`/admin/cloud/files/${file.id}`);
         toast.success('Moved to trash');
       }
+
+      if (action === 'restore') {
+        await api.put(`/admin/cloud/files/${file.id}/restore`);
+        toast.success('File restored');
+      }
+
+      if (action === 'deletePermanent') {
+        const confirmDelete = window.confirm('Permanently delete this file from the cloud? This cannot be undone.');
+        if (!confirmDelete) return;
+        await api.delete(`/admin/cloud/files/${file.id}?hard=true`);
+        toast.success('File permanently deleted');
+      }
+
       fetchFiles();
       fetchCloudAnalytics();
     } catch (err) {
@@ -446,12 +465,22 @@ export default function AdminCloudStorage() {
                   </div>
                 </button>
                 <div style={{ padding: 16, display: 'grid', gap: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{file.display_name}</div>
                       <div style={{ color: '#94a3b8', fontSize: 12 }}>{file.resource_type.toUpperCase()}</div>
                     </div>
-                    <button onClick={() => handleFileAction('download', file)} style={{ border: 'none', background: 'rgba(249,115,22,0.12)', color: '#f97316', borderRadius: 14, padding: '10px 12px', cursor: 'pointer' }}><DownloadCloud size={16} /></button>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button onClick={() => handleFileAction('download', file)} style={{ border: 'none', background: 'rgba(249,115,22,0.12)', color: '#f97316', borderRadius: 14, padding: '10px 12px', cursor: 'pointer' }}><DownloadCloud size={16} /></button>
+                      {!trashView ? (
+                        <button onClick={() => handleFileAction('trash', file)} style={{ border: 'none', background: 'rgba(248,113,113,0.14)', color: '#f87171', borderRadius: 14, padding: '10px 12px', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                      ) : (
+                        <>
+                          <button onClick={() => handleFileAction('restore', file)} style={{ border: 'none', background: 'rgba(34,197,94,0.14)', color: '#4ade80', borderRadius: 14, padding: '10px 12px', cursor: 'pointer' }}>Restore</button>
+                          <button onClick={() => handleFileAction('deletePermanent', file)} style={{ border: 'none', background: 'rgba(248,113,113,0.14)', color: '#f87171', borderRadius: 14, padding: '10px 12px', cursor: 'pointer' }}>Delete</button>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, color: '#94a3b8', fontSize: 12 }}>
                     <span>{formatBytes(file.size_bytes)}</span>
