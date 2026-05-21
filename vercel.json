@@ -5,6 +5,7 @@
   "installCommand": "echo 'deps installed in build step'",
   "rewrites": [
     { "source": "/sw.js", "destination": "/sw.js" },
+    { "source": "/sitemap.xml", "destination": "https://shri-ram-clothings.onrender.com/sitemap.xml" },
     {
       "source": "/(.*\\.(?:js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp|avif|map|txt|xml))",
       "destination": "/$1"

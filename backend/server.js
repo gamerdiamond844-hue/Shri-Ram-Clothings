@@ -48,6 +48,91 @@ app.use('/api/homepage', require('./routes/homepage'));
 app.use('/api/contact', require('./routes/contact'));
 app.use('/api/notifications', require('./routes/notifications'));
 
+// ── Public: Dynamic sitemap.xml ──
+app.get('/sitemap.xml', async (req, res) => {
+  const escapeXml = (s = '') =>
+    String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+
+  const toLastMod = (value) => {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString().split('T')[0]; // YYYY-MM-DD
+  };
+
+  const SITE_URL = (process.env.SITE_URL || 'https://www.shriramclothings.in').replace(/\/+$/, '');
+
+  const staticRoutes = [
+    { path: '/', changefreq: 'daily', priority: 1.0 },
+    { path: '/shop', changefreq: 'daily', priority: 0.9 },
+    { path: '/contact', changefreq: 'monthly', priority: 0.6 },
+    { path: '/privacy', changefreq: 'yearly', priority: 0.3 },
+    { path: '/terms', changefreq: 'yearly', priority: 0.3 },
+    { path: '/refund', changefreq: 'yearly', priority: 0.3 },
+    { path: '/return-policy', changefreq: 'yearly', priority: 0.3 },
+    { path: '/shipping', changefreq: 'yearly', priority: 0.3 },
+    { path: '/cancellation', changefreq: 'yearly', priority: 0.3 },
+    { path: '/cookies', changefreq: 'yearly', priority: 0.3 },
+    { path: '/disclaimer', changefreq: 'yearly', priority: 0.3 },
+    { path: '/legal', changefreq: 'yearly', priority: 0.3 },
+  ];
+
+  const makeUrlEntry = ({ loc, lastmod, changefreq, priority }) => {
+    const parts = [
+      '  <url>',
+      `    <loc>${escapeXml(loc)}</loc>`,
+    ];
+    if (lastmod) parts.push(`    <lastmod>${escapeXml(lastmod)}</lastmod>`);
+    if (changefreq) parts.push(`    <changefreq>${escapeXml(changefreq)}</changefreq>`);
+    if (priority !== undefined && priority !== null) parts.push(`    <priority>${priority}</priority>`);
+    parts.push('  </url>');
+    return parts.join('\n');
+  };
+
+  try {
+    const { pool } = require('./config/db');
+
+    const productsRes = await pool.query(
+      `SELECT id, created_at, updated_at
+       FROM src_products
+       WHERE status = 'approved' AND deleted_at IS NULL
+       ORDER BY updated_at DESC NULLS LAST, created_at DESC`
+    );
+
+    const urls = [
+      ...staticRoutes.map(r => ({
+        loc: `${SITE_URL}${r.path}`,
+        changefreq: r.changefreq,
+        priority: r.priority,
+      })),
+      ...productsRes.rows.map(p => ({
+        loc: `${SITE_URL}/product/${encodeURIComponent(p.id)}`,
+        lastmod: toLastMod(p.updated_at || p.created_at),
+        changefreq: 'weekly',
+        priority: 0.7,
+      })),
+    ];
+
+    const xml =
+      `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+      urls.map(makeUrlEntry).join('\n') +
+      `\n</urlset>\n`;
+
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // cache 1 hour
+    return res.status(200).send(xml);
+  } catch (err) {
+    console.error('Sitemap error:', err.message);
+    return res.status(500).send('Error generating sitemap');
+  }
+});
+
 app.get('/api/health', (_, res) => res.json({ status: 'ok', brand: 'Shri Ram Clothings', timestamp: new Date() }));
 app.get('/', (_, res) => res.json({ name: 'Shri Ram Clothings API', status: 'running', version: '1.0.0' }));
 

@@ -20,6 +20,10 @@
       "destination": "/sw.js"
     },
     {
+      "source": "/sitemap.xml",
+      "destination": "https://shri-ram-clothings.onrender.com/sitemap.xml"
+    },
+    {
       "source": "/(.*\\.(?:js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp|avif|map|json|txt|xml))",
       "destination": "/$1"
     },
