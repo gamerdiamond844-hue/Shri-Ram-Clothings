@@ -98,10 +98,10 @@ app.get('/sitemap.xml', async (req, res) => {
     const { pool } = require('./config/db');
 
     const productsRes = await pool.query(
-      `SELECT id, created_at, updated_at
+      `SELECT id, created_at
        FROM src_products
        WHERE status = 'approved' AND deleted_at IS NULL
-       ORDER BY updated_at DESC NULLS LAST, created_at DESC`
+       ORDER BY created_at DESC`
     );
 
     const urls = [
@@ -112,7 +112,7 @@ app.get('/sitemap.xml', async (req, res) => {
       })),
       ...productsRes.rows.map(p => ({
         loc: `${SITE_URL}/product/${encodeURIComponent(p.id)}`,
-        lastmod: toLastMod(p.updated_at || p.created_at),
+        lastmod: toLastMod(p.created_at),
         changefreq: 'weekly',
         priority: 0.7,
       })),
