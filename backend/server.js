@@ -94,6 +94,12 @@ app.get('/sitemap.xml', async (req, res) => {
     return parts.join('\n');
   };
 
+  const buildXml = (urls) =>
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    urls.map(makeUrlEntry).join('\n') +
+    `\n</urlset>\n`;
+
   try {
     const { pool } = require('./config/db');
 
@@ -118,18 +124,22 @@ app.get('/sitemap.xml', async (req, res) => {
       })),
     ];
 
-    const xml =
-      `<?xml version="1.0" encoding="UTF-8"?>\n` +
-      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-      urls.map(makeUrlEntry).join('\n') +
-      `\n</urlset>\n`;
-
+    res.setHeader('X-SRC-Sitemap', 'v2');
     res.setHeader('Content-Type', 'application/xml; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600'); // cache 1 hour
-    return res.status(200).send(xml);
+    return res.status(200).send(buildXml(urls));
   } catch (err) {
     console.error('Sitemap error:', err.message);
-    return res.status(500).send('Error generating sitemap');
+    // Fallback: still return a valid sitemap with static URLs only
+    const fallbackUrls = staticRoutes.map(r => ({
+      loc: `${SITE_URL}${r.path}`,
+      changefreq: r.changefreq,
+      priority: r.priority,
+    }));
+    res.setHeader('X-SRC-Sitemap', 'v2-fallback');
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).send(buildXml(fallbackUrls));
   }
 });
 
