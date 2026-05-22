@@ -3,13 +3,13 @@ import { useEffect } from 'react';
 export const BRAND    = 'Shri Ram Clothings';
 export const OPERATOR = 'Dinesh Global Enterprise Private Limited';
 export const COMPANY  = OPERATOR; // alias for backward compat
-export const EMAIL    = 'shriramclothings.com';
-export const SUPPORT  = 'shriramclothings.com';
+export const EMAIL    = 'support@shriramclothings.in';
+export const SUPPORT  = 'support@shriramclothings.in';
 export const ADDRESS  = 'Silver Square Link, Near Sravan Choukdi, Bharuch, Gujarat – 392001, India';
 export const PHONE    = '+91 7984626447';
-export const WEBSITE  = 'https://shriramclothings.in';
+export const WEBSITE  = 'https://www.shriramclothings.in';
 export const GRIEVANCE_OFFICER = 'Mayur Rawal';
-export const GRIEVANCE_EMAIL   = 'shriramclothings.com';
+export const GRIEVANCE_EMAIL   = 'support@shriramclothings.in';
 
 // Legal identity line used across all policy pages
 export const LEGAL_IDENTITY = `${BRAND} is an independent men's fashion and ecommerce brand. The ecommerce platform, infrastructure, technical operations, and platform management services are operated and supported by ${OPERATOR}. ${OPERATOR} acts solely as the managing, operational, technology, and support partner for ${BRAND}. The brand identity, business operations, and associated intellectual assets of ${BRAND} remain independently associated with ${BRAND}.`;

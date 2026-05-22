@@ -3,7 +3,7 @@ const { pool } = require('../config/db');
 const { sendMail } = require('../services/mailService');
 
 webpush.setVapidDetails(
-  process.env.VAPID_EMAIL || 'mailto:support@shriramclothings.com',
+  process.env.VAPID_EMAIL || 'mailto:support@shriramclothings.in',
   process.env.VAPID_PUBLIC_KEY,
   process.env.VAPID_PRIVATE_KEY
 );

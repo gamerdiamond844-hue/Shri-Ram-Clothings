@@ -201,7 +201,7 @@ export default function Contact() {
             <div style={{ background: '#111827', borderRadius: 16, padding: 24 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 20 }}>Contact Information</h3>
               {[
-                { icon: Mail,  label: 'Email', value: 'support@shriramclothings.com', href: 'mailto:support@shriramclothings.com' },
+                { icon: Mail,  label: 'Email', value: 'support@shriramclothings.in', href: 'mailto:support@shriramclothings.in' },
                 { icon: Phone, label: 'Phone', value: '+91 98765 43210', href: 'tel:+919876543210' },
                 { icon: MapPin,label: 'Address', value: 'Mumbai, Maharashtra, India', href: null },
                 { icon: Clock, label: 'Working Hours', value: 'Mon–Sat, 10am–7pm IST', href: null },

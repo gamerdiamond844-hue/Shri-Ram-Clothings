@@ -8,6 +8,7 @@ import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 import PushPrompt from './components/PushPrompt';
+import SeoManager from './components/SeoManager';
 
 const Home          = lazy(() => import('./pages/Home'));
 const Shop          = lazy(() => import('./pages/Shop'));
@@ -59,6 +60,7 @@ export default function App() {
     <AuthProvider>
       <SiteSettingsProvider>
       <BrowserRouter>
+        <SeoManager />
         <ScrollToTop />
         <PushPrompt />
         <Suspense fallback={<Loader />}>

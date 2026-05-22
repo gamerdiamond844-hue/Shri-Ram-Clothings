@@ -19,7 +19,7 @@ const FIELDS = [
 const FOOTER_FIELDS = [
   { key: 'footer_description', label: 'Brand Description',   placeholder: "Premium Men's Fashion Brand...",        type: 'textarea' },
   { key: 'footer_phone',       label: 'Phone Number',        placeholder: '+91 98765 43210',                       type: 'text' },
-  { key: 'footer_email',       label: 'Support Email',       placeholder: 'support@shriramclothings.com',          type: 'text' },
+  { key: 'footer_email',       label: 'Support Email',       placeholder: 'support@shriramclothings.in',           type: 'text' },
   { key: 'footer_whatsapp',    label: 'WhatsApp Number',     placeholder: '919876543210 (with country code)',       type: 'text' },
   { key: 'footer_address',     label: 'Store Address',       placeholder: 'Silver Square Link, Bharuch...',        type: 'textarea' },
   { key: 'footer_maps_url',    label: 'Google Maps URL',     placeholder: 'https://maps.google.com/?q=...',        type: 'text' },

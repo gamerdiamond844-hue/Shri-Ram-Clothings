@@ -3,6 +3,26 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "frontend/dist",
   "installCommand": "echo 'deps installed in build step'",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "shriramclothings.in" }],
+      "destination": "https://www.shriramclothings.in/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "shriramclothings.com" }],
+      "destination": "https://www.shriramclothings.in/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.shriramclothings.com" }],
+      "destination": "https://www.shriramclothings.in/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/sitemap.xml", "destination": "https://shri-ram-clothings.onrender.com/sitemap.xml" },

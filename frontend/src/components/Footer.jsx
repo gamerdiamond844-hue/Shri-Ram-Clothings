@@ -95,7 +95,7 @@ export default function Footer() {
   const [subscribing, setSubscribing] = useState(false);
 
   const phone = settings.footer_phone || '+91 98765 43210';
-  const emailAddr = settings.footer_email || 'support@shriramclothings.com';
+  const emailAddr = settings.footer_email || 'support@shriramclothings.in';
   const whatsapp = (settings.footer_whatsapp || '919876543210').replace(/\D/g, '');
   const address = settings.footer_address || 'Silver Square Link, Near Sravan Choukdi, Bharuch, Gujarat – 392001, India';
   const mapsUrl = settings.footer_maps_url || 'https://maps.google.com/?q=Bharuch,Gujarat,India';

@@ -15,7 +15,7 @@ const DEFAULTS = {
   // Footer
   footer_description: "Premium Men's Fashion Brand delivering trendy and high-quality clothing across India.",
   footer_phone: '+91 7984626447',
-  footer_email: 'support@shriramclothings.com',
+  footer_email: 'support@shriramclothings.in',
   footer_whatsapp: '917984626447',
   footer_address: 'Silver Square Link, Near Sravan Choukdi, Bharuch, Gujarat - 392001, India',
   footer_maps_url: 'https://maps.app.goo.gl/VNDz8DmyU6h4Kgcu5',

@@ -4,7 +4,7 @@ const { pool, initDB } = require('./config/db');
 
 async function createAdmin() {
   await initDB();
-  const email = process.env.ADMIN_EMAIL || 'admin@shriramclothings.com';
+  const email = process.env.ADMIN_EMAIL || 'admin@shriramclothings.in';
   const password = process.env.ADMIN_PASSWORD || 'Admin@2024';
   const name = 'Admin';
   const hash = await bcrypt.hash(password, 12);

@@ -3,7 +3,7 @@
    Handles background push notifications even when browser is closed
    ============================================================ */
 
-const SW_VERSION = 'shriram-sw-v3';
+const SW_VERSION = 'shriram-sw-v4';
 
 // ── Install: skip waiting so new SW activates immediately ──────────────────
 self.addEventListener('install', (event) => {

@@ -441,7 +441,7 @@ const initDB = async () => {
         ('store_address', 'Silver Square Link, Near Sravan Choukdi, Bharuch, Gujarat – 392001, India', 'text'),
         ('phone_number', '+91 9876543210', 'text'),
         ('whatsapp_number', '919876543210', 'text'),
-        ('support_email', 'support@shriramclothings.com', 'text'),
+        ('support_email', 'support@shriramclothings.in', 'text'),
         ('working_hours', 'Mon – Sat: 9:00 AM to 8:00 PM', 'text'),
         ('brand_description', 'Premium Men''s Fashion Brand delivering trendy and high-quality clothing across India.', 'text'),
         ('google_maps_url', 'https://maps.google.com/?q=Bharuch,Gujarat,India', 'url'),
