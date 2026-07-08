@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Plus, CreditCard, ShieldCheck, X } from 'lucide-react';
+import { MapPin, Plus, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
@@ -64,29 +64,20 @@ export default function Checkout() {
         quantity: item.quantity, image_url: item.image_url,
       }));
 
-      const res = await api.post('/orders/paytm/initiate', {
+      const res = await api.post('/orders', {
         items: orderItems, subtotal: state.subtotal, discount_amount: state.discount,
         total: finalTotal, delivery_charge: shippingCost,
         free_delivery_applied: isFreeDelivery,
         coupon_code: state.coupon_code, ...selectedAddr, email: user.email,
+        payment_method: 'cod',
       });
 
-      const { paytmUrl, params } = res.data;
-
-      // Build and submit a POST form to Paytm
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = paytmUrl;
-      form.style.display = 'none';
-      Object.keys(params).forEach(key => {
-        const inp = document.createElement('input');
-        inp.name = key;
-        inp.value = params[key];
-        form.appendChild(inp);
-      });
-      document.body.appendChild(form);
-      form.submit();
-    } catch (err) { toast.error(err.response?.data?.message || 'Payment gateway error'); setPlacing(false); }
+      navigate('/order-success', { state: { order: res.data.order } });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Order placement failed');
+    } finally {
+      setPlacing(false);
+    }
   };
 
   if (!state?.items?.length) return null;
@@ -198,10 +189,10 @@ export default function Checkout() {
 
             <button onClick={handlePayment} disabled={placing || !selectedAddr} className="btn-orange"
               style={{ width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <CreditCard size={17} /> {placing ? 'Processing...' : 'Pay Now'}
+              {placing ? 'Processing...' : 'Place Order'}
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, color: '#9ca3af' }}>
-              <ShieldCheck size={13} color="#22c55e" /> 100% Secure · Powered by Paytm
+            <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center' }}>
+              Cash on Delivery only. Pay when your order is delivered.
             </div>
           </div>
         </div>

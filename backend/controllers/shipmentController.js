@@ -194,11 +194,22 @@ const adminCancelOrder = async (req, res) => {
       try { await delhivery.cancelShipment(order.tracking_id); } catch {}
     }
 
+    const updatedPaymentStatus = order.payment_status === 'paid' ? 'refunded' : order.payment_status;
+
     await pool.query(
       `UPDATE src_orders SET status='cancelled', shipment_status='cancelled',
-        cancellation_reason=$1, updated_at=NOW() WHERE id=$2`,
-      [reason || 'Cancelled by admin', id]
+        cancellation_reason=$1, payment_status=$2, updated_at=NOW() WHERE id=$3`,
+      [reason || 'Cancelled by admin', updatedPaymentStatus, id]
     );
+
+    if (!order.tracking_id && !['shipped','delivered','refunded','cancelled'].includes(order.status)) {
+      const items = await pool.query('SELECT * FROM src_order_items WHERE order_id=$1', [id]);
+      for (const item of items.rows) {
+        if (item.variant_id) {
+          await pool.query('UPDATE src_product_variants SET stock=stock+$1 WHERE id=$2', [item.quantity, item.variant_id]);
+        }
+      }
+    }
 
     await notifyUser(order.user_id, id, `❌ Your order #${order.order_id} has been cancelled by admin.`);
     res.json({ message: 'Order cancelled' });

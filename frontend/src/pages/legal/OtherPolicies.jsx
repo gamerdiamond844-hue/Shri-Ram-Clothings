@@ -134,7 +134,6 @@ export function CookiesPolicy() {
           'Google Analytics — Usage analytics and behavior tracking',
           'Google Ads — Advertising and remarketing',
           'Meta Pixel — Social media advertising and conversion tracking',
-          'Paytm — Payment processing and fraud prevention',
           'Cloudinary — Media delivery optimization',
         ]} />
       </Section>

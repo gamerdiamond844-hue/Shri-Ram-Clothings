@@ -37,6 +37,7 @@ export default function OrderSuccess() {
             {[
               ['Order ID', `#${order.order_id}`],
               ['Total', `₹${order.total}`],
+              ['Payment', order.payment_method === 'cod' ? 'Cash on Delivery' : order.payment_method],
               ['Status', order.status],
               ...(order.tracking_id ? [['Tracking ID', order.tracking_id]] : []),
             ].map(([label, value]) => (

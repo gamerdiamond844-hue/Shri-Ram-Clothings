@@ -69,13 +69,13 @@ export default function TermsConditions() {
 
       <Section num="5" title="Payments">
         <Sub title="5.1 Payment Methods">
-          We accept payments via Paytm, which supports credit cards, debit cards, UPI, net banking, and digital wallets. All payment transactions are encrypted and processed securely by Paytm Payments Private Limited.
+          We currently accept only Cash on Delivery (COD) at checkout. Payment is collected by the delivery partner when your order is delivered.
         </Sub>
         <Sub title="5.2 Payment Security">
-          We do not store complete card details on our servers. All sensitive payment data is handled exclusively by our PCI-DSS compliant payment processor. You are responsible for ensuring that your payment method is authorized for use.
+          We do not store complete card details on our servers. For COD orders, payment is handled in cash at the time of delivery, and no online payment credentials are collected.
         </Sub>
         <Sub title="5.3 Failed Payments">
-          In the event of a payment failure, the order will not be confirmed. If your account is debited but the order is not confirmed, the amount will be automatically refunded within 5-7 business days by your bank or payment provider.
+          In the event of a COD payment issue, our delivery partner will notify you and work with you to complete the transaction at delivery. Orders are confirmed after placement and will not be processed without your payment.
         </Sub>
         <Sub title="5.4 Chargeback Policy">
           Initiating a chargeback without first attempting resolution through our customer support constitutes a breach of these Terms. We reserve the right to suspend accounts involved in fraudulent chargebacks and pursue legal remedies for damages incurred.

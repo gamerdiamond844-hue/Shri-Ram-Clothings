@@ -11,7 +11,7 @@ const FAQS = [
   { q: 'What is your return policy?', a: 'We offer a 7-day return policy. Items must be unused, unwashed, and in original packaging with tags attached.' },
   { q: 'How do I track my order?', a: 'Once your order is shipped, you will receive a tracking link via email. You can also check order status in My Orders section.' },
   { q: 'Can I change or cancel my order?', a: 'Orders can be cancelled within 2 hours of placement. After that, please contact us and we will do our best to help.' },
-  { q: 'Do you offer Cash on Delivery?', a: 'Currently we accept online payments via Paytm (UPI, Cards, Net Banking). COD is not available at this time.' },
+  { q: 'Do you offer Cash on Delivery?', a: 'Yes, we currently accept only Cash on Delivery (COD) for orders placed on this site.' },
 ];
 
 const inp = { width: '100%', padding: '11px 14px', fontSize: 14, border: '1.5px solid #e5e7eb', borderRadius: 10, outline: 'none', fontFamily: 'inherit', color: '#111827', background: '#fff', transition: 'border-color 0.15s, box-shadow 0.15s' };
