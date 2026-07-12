@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
 
 const rawConnection = process.env.DATABASE_URL ||
   `postgresql://${process.env.PGUSER || 'postgres'}:${process.env.PGPASSWORD || 'password'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || 'shriram_clothings'}`;
@@ -609,6 +610,14 @@ const initDB = async () => {
         WHERE p.name IN ('erp.view_dashboard','erp.manage_finance','erp.view_reports')
       ON CONFLICT DO NOTHING;
     `);
+
+    const defaultAdminEmail = 'admin@shriramclothings.in';
+    const defaultAdminPassword = await bcrypt.hash('Admin@1234', 12);
+    await client.query(`
+      INSERT INTO src_users (name, email, password, role, is_banned)
+      VALUES ($1, $2, $3, 'super_admin', FALSE)
+      ON CONFLICT (email) DO NOTHING;
+    `, ['Super Admin', defaultAdminEmail, defaultAdminPassword]);
 
     console.log('✅ Shri Ram Clothings DB initialized');
   } finally {
