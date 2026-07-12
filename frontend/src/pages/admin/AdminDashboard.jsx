@@ -8,7 +8,7 @@ const formatBytes = (bytes) => {
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
 };
-import { LayoutDashboard, Package, ShoppingBag, Tag, FolderOpen, LogOut, Menu, X, Layout, MessageSquare, Bell, Users, Truck, Star, Cloud, Globe } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Tag, FolderOpen, LogOut, Menu, X, Layout, MessageSquare, Bell, Users, Truck, Star, Cloud, Globe, Cpu } from 'lucide-react';
 import api from '../../utils/api';
 import AdminOverview from './AdminOverview';
 import AdminProducts from './AdminProducts';
@@ -23,6 +23,7 @@ import AdminUsers from './AdminUsers';
 import AdminReviews from './AdminReviews';
 import AdminCloudStorage from './AdminCloudStorage';
 import AdminDomains from './AdminDomains';
+import AdminErp from './AdminErp';
 
 const NAV = [
   { key: 'overview',       label: 'Overview',       icon: LayoutDashboard },
@@ -38,6 +39,7 @@ const NAV = [
   { key: 'categories',     label: 'Categories',     icon: FolderOpen },
   { key: 'coupons',        label: 'Coupons',        icon: Tag },
   { key: 'domains',        label: 'Domains',        icon: Globe },
+  { key: 'erp',            label: 'ERP Console',   icon: Cpu },
 ];
 
 const SECTIONS = {
@@ -54,6 +56,7 @@ const SECTIONS = {
   categories:    <AdminCategories />,
   coupons:       <AdminCoupons />,
   domains:       <AdminDomains />,
+  erp:           <AdminErp />,
 };
 
 export default function AdminDashboard() {
