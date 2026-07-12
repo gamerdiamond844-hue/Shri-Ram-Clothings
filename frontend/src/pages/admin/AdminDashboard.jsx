@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const formatBytes = (bytes) => {
   if (!bytes) return '0 B';
@@ -59,6 +59,7 @@ const SECTIONS = {
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [section, setSection] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cloudMetrics, setCloudMetrics] = useState(null);
@@ -72,6 +73,21 @@ export default function AdminDashboard() {
       .then((res) => setCloudMetrics(res.data))
       .catch(() => setCloudMetrics(null));
   }, [user]);
+
+  useEffect(() => {
+    const rawPath = location.pathname.replace(/^\/admin\/?/, '');
+    const normalized = rawPath.split('/')[0] || 'overview';
+    if (!SECTIONS[normalized]) {
+      if (normalized !== '') {
+        navigate('/admin', { replace: true });
+      }
+      setSection('overview');
+      return;
+    }
+    setSection(normalized);
+  }, [location.pathname, navigate]);
+
+  const activeNav = NAV.find((item) => item.key === section) || NAV[0];
 
   const Sidebar = () => (
     <aside style={{
@@ -93,7 +109,10 @@ export default function AdminDashboard() {
       <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {NAV.map(({ key, label, icon: Icon }) => (
           <button key={key}
-            onClick={() => { setSection(key); setSidebarOpen(false); }}
+            onClick={() => {
+              navigate(key === 'overview' ? '/admin' : `/admin/${key}`);
+              setSidebarOpen(false);
+            }}
             style={{
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
@@ -170,7 +189,7 @@ export default function AdminDashboard() {
               style={{ width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 8, color: '#374151' }}>
               <Menu size={20} />
             </button>
-            <h1 style={{ fontSize: 15, fontWeight: 700, color: '#111827', textTransform: 'capitalize' }}>{section}</h1>
+            <h1 style={{ fontSize: 15, fontWeight: 700, color: '#111827', textTransform: 'capitalize' }}>{activeNav.label}</h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />

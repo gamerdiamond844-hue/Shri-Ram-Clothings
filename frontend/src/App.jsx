@@ -66,7 +66,7 @@ export default function App() {
         <Suspense fallback={<Loader />}>
           <Routes>
             {/* Admin — no navbar/footer */}
-            <Route path="/admin" element={
+            <Route path="/admin/*" element={
               <ProtectedRoute roles={['admin','super_admin','business_owner','store_admin','store_manager','cashier','warehouse_manager','accountant']}>
                 <AdminDashboard />
               </ProtectedRoute>

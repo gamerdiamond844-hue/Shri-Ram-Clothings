@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Cpu, Globe, Settings, Building2, Warehouse } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Cpu, Globe, Building2, Layers, Settings, RefreshCw } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -19,25 +19,29 @@ export default function AdminErp() {
   const [dashboard, setDashboard] = useState(null);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+
+  const loadErpData = useCallback(async () => {
+    setLoading(true);
+    setIsError(false);
+    try {
+      const [dashRes, settingsRes] = await Promise.all([
+        api.get('/erp/dashboard'),
+        api.get('/erp/settings'),
+      ]);
+      setDashboard(dashRes.data);
+      setSettings(settingsRes.data);
+    } catch (err) {
+      setIsError(true);
+      toast.error(err.response?.data?.message || 'Unable to load ERP console');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [dashRes, settingsRes] = await Promise.all([
-          api.get('/erp/dashboard'),
-          api.get('/erp/settings'),
-        ]);
-        setDashboard(dashRes.data);
-        setSettings(settingsRes.data);
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Unable to load ERP console');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    loadErpData();
+  }, [loadErpData]);
 
   const formatNumber = (value) => {
     if (value === null || value === undefined) return '0';
@@ -57,14 +61,27 @@ export default function AdminErp() {
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        <div style={{ width: 48, height: 48, borderRadius: 16, background: '#f97316', display: 'grid', placeItems: 'center', color: '#fff' }}>
-          <Cpu size={22} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ width: 48, height: 48, borderRadius: 16, background: '#f97316', display: 'grid', placeItems: 'center', color: '#fff' }}>
+            <Cpu size={22} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>ERP Console</h2>
+            <p style={{ fontSize: 13, color: '#6b7280', maxWidth: 640 }}>View tenant-aware ERP metrics, active modules, and current business settings for the platform. This panel is built for admin and super-admin ERP operations.</p>
+          </div>
         </div>
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>ERP Console</h2>
-          <p style={{ fontSize: 13, color: '#6b7280', maxWidth: 640 }}>View tenant-aware ERP metrics, active modules, and current business settings for the platform. This panel is built for admin and super-admin ERP operations.</p>
-        </div>
+
+        <button
+          onClick={loadErpData}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid #e5e7eb', borderRadius: 999,
+            background: '#fff', color: '#111827', padding: '10px 16px', cursor: 'pointer', fontWeight: 600,
+          }}
+        >
+          <RefreshCw size={16} />
+          Refresh
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -106,6 +123,24 @@ export default function AdminErp() {
           {Array.from({ length: 3 }).map((_, index) => (
             <div key={index} style={{ height: 120, background: '#f3f4f6', borderRadius: 16 }} />
           ))}
+        </div>
+      ) : isError ? (
+        <div style={{ background: '#fff7ed', borderRadius: 18, border: '1px solid #fcd34d', padding: 20, display: 'grid', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: '#fef3c7', display: 'grid', placeItems: 'center', color: '#b45309' }}>!</div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#92400e' }}>ERP load failed</div>
+              <div style={{ color: '#7c2d12', fontSize: 13 }}>There was a problem fetching ERP data. Please check your connection or try again.</div>
+            </div>
+          </div>
+          <button
+            onClick={loadErpData}
+            style={{
+              width: 'fit-content', padding: '10px 18px', borderRadius: 999, border: 'none', background: '#f97316', color: '#fff', cursor: 'pointer', fontWeight: 700,
+            }}
+          >
+            Retry
+          </button>
         </div>
       ) : (
         <>
