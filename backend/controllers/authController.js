@@ -5,7 +5,7 @@ const { pool } = require('../config/db');
 const { sendMail } = require('../services/mailService');
 
 const signToken = (user) =>
-  jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  jwt.sign({ id: user.id, role: user.role, business_id: user.business_id || null, store_id: user.store_id || null, warehouse_id: user.warehouse_id || null }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
 const register = async (req, res) => {
   const { name, email, password, phone } = req.body;
@@ -16,8 +16,10 @@ const register = async (req, res) => {
     if (exists.rows.length) return res.status(409).json({ message: 'Email already registered' });
     const hash = await bcrypt.hash(password, 12);
     const result = await pool.query(
-      'INSERT INTO src_users (name, email, password, phone) VALUES ($1,$2,$3,$4) RETURNING id, name, email, role, avatar_url, phone',
-      [name, email, hash, phone || null]
+      `INSERT INTO src_users (name, email, password, phone, business_id, store_id)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       RETURNING id, name, email, role, avatar_url, phone, business_id, store_id`,
+      [name, email, hash, phone || null, req.tenant?.business_id || null, req.tenant?.store_id || null]
     );
     const user = result.rows[0];
     res.status(201).json({ token: signToken(user), user });
@@ -168,10 +170,10 @@ const googleLogin = async (req, res) => {
     } else {
       // New user — create account
       const newUser = await pool.query(
-        `INSERT INTO src_users (name, email, google_id, auth_provider, avatar_url)
-         VALUES ($1,$2,$3,'google',$4)
+        `INSERT INTO src_users (name, email, google_id, auth_provider, avatar_url, business_id, store_id)
+         VALUES ($1,$2,$3,'google',$4,$5,$6)
          RETURNING id, name, email, role, avatar_url, phone, is_banned, created_at`,
-        [name, email, googleId, picture || null]
+        [name, email, googleId, picture || null, req.tenant?.business_id || null, req.tenant?.store_id || null]
       );
       user = newUser.rows[0];
     }

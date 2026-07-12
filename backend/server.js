@@ -36,6 +36,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(require('./middleware/tenant').tenant);
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
@@ -44,6 +45,7 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/shipments', require('./routes/shipments'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/erp', require('./routes/erp'));
 app.use('/api/homepage', require('./routes/homepage'));
 app.use('/api/contact', require('./routes/contact'));
 app.use('/api/notifications', require('./routes/notifications'));

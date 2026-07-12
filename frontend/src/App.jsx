@@ -67,7 +67,7 @@ export default function App() {
           <Routes>
             {/* Admin — no navbar/footer */}
             <Route path="/admin" element={
-              <ProtectedRoute roles={['admin']}>
+              <ProtectedRoute roles={['admin','super_admin','business_owner','store_admin','store_manager','cashier','warehouse_manager','accountant']}>
                 <AdminDashboard />
               </ProtectedRoute>
             } />

@@ -17,14 +17,62 @@ const initDB = async () => {
   try {
     // Core tables
     await client.query(`
+      CREATE TABLE IF NOT EXISTS src_businesses (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        slug VARCHAR(200) UNIQUE NOT NULL,
+        owner_id INTEGER,
+        gst_number VARCHAR(50),
+        phone VARCHAR(30),
+        email VARCHAR(150),
+        address TEXT,
+        currency VARCHAR(10) DEFAULT 'INR',
+        timezone VARCHAR(50) DEFAULT 'Asia/Kolkata',
+        settings JSONB DEFAULT '{}'::jsonb,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_stores (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        name VARCHAR(200) NOT NULL,
+        slug VARCHAR(200) UNIQUE NOT NULL,
+        store_code VARCHAR(30) UNIQUE,
+        address TEXT,
+        phone VARCHAR(30),
+        email VARCHAR(150),
+        manager_id INTEGER,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_warehouses (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        name VARCHAR(200) NOT NULL,
+        address TEXT,
+        phone VARCHAR(30),
+        manager_id INTEGER,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS src_users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         email VARCHAR(150) UNIQUE NOT NULL,
         password VARCHAR(255),
-        role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'seller', 'admin')),
+        role VARCHAR(30) DEFAULT 'user' CHECK (role IN ('user', 'seller', 'admin', 'super_admin', 'business_owner', 'store_admin', 'store_manager', 'cashier', 'warehouse_manager', 'accountant', 'employee')),
         avatar_url TEXT,
         phone VARCHAR(20),
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE SET NULL,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        warehouse_id INTEGER REFERENCES src_warehouses(id) ON DELETE SET NULL,
+        employee_code VARCHAR(30) UNIQUE,
         is_banned BOOLEAN DEFAULT FALSE,
         google_id VARCHAR(200),
         auth_provider VARCHAR(20) DEFAULT 'local' CHECK (auth_provider IN ('local','google')),
@@ -201,6 +249,32 @@ const initDB = async () => {
         target_id INTEGER,
         details TEXT,
         created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_permissions (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(150) UNIQUE NOT NULL,
+        description TEXT,
+        group_name VARCHAR(100),
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_role_permissions (
+        role VARCHAR(50) NOT NULL,
+        permission_id INTEGER REFERENCES src_permissions(id) ON DELETE CASCADE,
+        PRIMARY KEY (role, permission_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS src_domains (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        warehouse_id INTEGER REFERENCES src_warehouses(id) ON DELETE SET NULL,
+        host VARCHAR(255) UNIQUE NOT NULL,
+        type VARCHAR(50) DEFAULT 'business',
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
       );
 
       CREATE TABLE IF NOT EXISTS src_password_resets (
@@ -462,6 +536,78 @@ const initDB = async () => {
         ('Jackets', 'jackets', 4),
         ('Ethnic Wear', 'ethnic-wear', 5)
       ON CONFLICT (slug) DO NOTHING;
+    `);
+
+    // Seed ERP permissions
+    await client.query(`
+      INSERT INTO src_permissions (name, description, group_name) VALUES
+        ('erp.view_dashboard', 'View ERP dashboard', 'ERP'),
+        ('erp.manage_domains', 'Manage tenant domains', 'ERP'),
+        ('erp.manage_users', 'Manage users and employees', 'ERP'),
+        ('erp.manage_orders', 'Manage orders and shipments', 'ERP'),
+        ('erp.manage_inventory', 'Manage inventory and products', 'ERP'),
+        ('erp.manage_finance', 'Manage invoices, payments and reports', 'ERP'),
+        ('erp.manage_notifications', 'Send notifications and campaigns', 'ERP'),
+        ('erp.view_reports', 'View sales and business reports', 'ERP'),
+        ('erp.manage_settings', 'Manage business settings', 'ERP'),
+        ('erp.manage_suppliers', 'Manage suppliers and purchase orders', 'ERP')
+      ON CONFLICT (name) DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'super_admin', p.id FROM src_permissions p
+        WHERE p.name LIKE 'erp.%'
+      ON CONFLICT DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'admin', p.id FROM src_permissions p
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_users','erp.manage_orders','erp.manage_inventory','erp.view_reports','erp.manage_settings','erp.manage_notifications')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'business_owner', p.id FROM src_permissions p
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_users','erp.manage_orders','erp.manage_inventory','erp.view_reports','erp.manage_settings','erp.manage_finance')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'store_admin', p.id FROM src_permissions p
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_orders','erp.manage_inventory','erp.manage_users','erp.manage_notifications')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'store_manager', p.id FROM src_permissions p
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_orders','erp.manage_inventory','erp.manage_notifications')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'cashier', p.id FROM src_permissions p
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_orders','erp.manage_finance')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'warehouse_manager', p.id FROM src_permissions p
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_inventory','erp.manage_orders')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'accountant', p.id FROM src_permissions p
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_finance','erp.view_reports')
+      ON CONFLICT DO NOTHING;
     `);
 
     console.log('✅ Shri Ram Clothings DB initialized');
