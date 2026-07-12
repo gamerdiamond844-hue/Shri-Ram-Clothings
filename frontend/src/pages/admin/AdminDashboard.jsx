@@ -24,7 +24,7 @@ import AdminReviews from './AdminReviews';
 import AdminCloudStorage from './AdminCloudStorage';
 import AdminDomains from './AdminDomains';
 
-const BASE_NAV = [
+const NAV = [
   { key: 'overview',       label: 'Overview',       icon: LayoutDashboard },
   { key: 'homepage',       label: 'Homepage',       icon: Layout },
   { key: 'products',       label: 'Products',       icon: Package },
@@ -36,7 +36,9 @@ const BASE_NAV = [
   { key: 'queries',        label: 'Queries',        icon: MessageSquare },
   { key: 'notifications',  label: 'Notifications',  icon: Bell },
   { key: 'categories',     label: 'Categories',     icon: FolderOpen },
-  { key: 'coupons',        label: 'Coupons',        icon: Tag },  { key: 'domains',        label: 'Domains',        icon: Globe },];
+  { key: 'coupons',        label: 'Coupons',        icon: Tag },
+  { key: 'domains',        label: 'Domains',        icon: Globe },
+];
 
 const SECTIONS = {
   overview:      <AdminOverview />,
