@@ -8,7 +8,7 @@ const formatBytes = (bytes) => {
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
 };
-import { LayoutDashboard, Package, ShoppingBag, Tag, FolderOpen, LogOut, Menu, X, Layout, MessageSquare, Bell, Users, Truck, Star, Cloud } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Tag, FolderOpen, LogOut, Menu, X, Layout, MessageSquare, Bell, Users, Truck, Star, Cloud, Globe } from 'lucide-react';
 import api from '../../utils/api';
 import AdminOverview from './AdminOverview';
 import AdminProducts from './AdminProducts';
@@ -22,8 +22,9 @@ import AdminNotifications from './AdminNotifications';
 import AdminUsers from './AdminUsers';
 import AdminReviews from './AdminReviews';
 import AdminCloudStorage from './AdminCloudStorage';
+import AdminDomains from './AdminDomains';
 
-const NAV = [
+const BASE_NAV = [
   { key: 'overview',       label: 'Overview',       icon: LayoutDashboard },
   { key: 'homepage',       label: 'Homepage',       icon: Layout },
   { key: 'products',       label: 'Products',       icon: Package },
@@ -35,8 +36,7 @@ const NAV = [
   { key: 'queries',        label: 'Queries',        icon: MessageSquare },
   { key: 'notifications',  label: 'Notifications',  icon: Bell },
   { key: 'categories',     label: 'Categories',     icon: FolderOpen },
-  { key: 'coupons',        label: 'Coupons',        icon: Tag },
-];
+  { key: 'coupons',        label: 'Coupons',        icon: Tag },  { key: 'domains',        label: 'Domains',        icon: Globe },];
 
 const SECTIONS = {
   overview:      <AdminOverview />,
@@ -51,6 +51,7 @@ const SECTIONS = {
   notifications: <AdminNotifications />,
   categories:    <AdminCategories />,
   coupons:       <AdminCoupons />,
+  domains:       <AdminDomains />,
 };
 
 export default function AdminDashboard() {

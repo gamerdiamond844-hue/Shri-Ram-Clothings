@@ -11,6 +11,10 @@ router.get('/modules', ...adminGuard, erp.getModules);
 router.get('/settings', ...adminGuard, erp.getSettings);
 router.get('/tenant', ...adminGuard, erp.getTenantInfo);
 
+router.get('/businesses', ...superAdminGuard, erp.listBusinesses);
+router.get('/stores', ...superAdminGuard, erp.listStores);
+router.get('/warehouses', ...superAdminGuard, erp.listWarehouses);
+
 router.get('/domains', ...superAdminGuard, domainCtrl.listDomains);
 router.post('/domains', ...superAdminGuard, domainCtrl.createDomain);
 router.put('/domains/:id', ...superAdminGuard, domainCtrl.updateDomain);
