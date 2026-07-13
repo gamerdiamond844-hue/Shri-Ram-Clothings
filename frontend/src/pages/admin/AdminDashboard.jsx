@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense, Component } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -35,6 +35,8 @@ import {
   UsersRound,
   Wallet,
   Warehouse,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import api from '../../utils/api';
 import AdminOverview from './AdminOverview';
@@ -50,25 +52,27 @@ import AdminUsers from './AdminUsers';
 import AdminReviews from './AdminReviews';
 import AdminCloudStorage from './AdminCloudStorage';
 import AdminErp from './AdminErp';
-import AdminPos from './erp/AdminPos';
-import AdminInventory from './erp/AdminInventory';
-import AdminWarehouse from './erp/AdminWarehouse';
-import AdminCustomers from './erp/AdminCustomers';
-import AdminSuppliers from './erp/AdminSuppliers';
-import AdminPurchases from './erp/AdminPurchases';
-import AdminReturns from './erp/AdminReturns';
-import AdminReports from './erp/AdminReports';
-import AdminEmployees from './erp/AdminEmployees';
-import AdminAttendance from './erp/AdminAttendance';
-import AdminExpenses from './erp/AdminExpenses';
-import AdminAuditLogs from './erp/AdminAuditLogs';
-import BarcodeEngine from './erp/BarcodeEngine';
-import AdminSalesOrders from './erp/AdminSalesOrders';
-import AdminSettings from './erp/AdminSettings';
-import AdminRoleManagement from './erp/AdminRoleManagement';
-import AdminSuperAdmin from './erp/AdminSuperAdmin';
 import AdminModuleWorkspace from './AdminModuleWorkspace';
 import { ADMIN_ROUTE_ALIASES, ERP_MODULE_MAP, getVisibleNavGroups, canAccessModule } from './erpConfig';
+
+// ── Lazy-load ALL ERP modules so a broken one doesn't crash the whole dashboard ──
+const AdminPos            = lazy(() => import('./erp/AdminPos'));
+const AdminInventory      = lazy(() => import('./erp/AdminInventory'));
+const AdminWarehouse      = lazy(() => import('./erp/AdminWarehouse'));
+const AdminCustomers      = lazy(() => import('./erp/AdminCustomers'));
+const AdminSuppliers      = lazy(() => import('./erp/AdminSuppliers'));
+const AdminPurchases      = lazy(() => import('./erp/AdminPurchases'));
+const AdminReturns        = lazy(() => import('./erp/AdminReturns'));
+const AdminReports        = lazy(() => import('./erp/AdminReports'));
+const AdminEmployees      = lazy(() => import('./erp/AdminEmployees'));
+const AdminAttendance     = lazy(() => import('./erp/AdminAttendance'));
+const AdminExpenses       = lazy(() => import('./erp/AdminExpenses'));
+const AdminAuditLogs      = lazy(() => import('./erp/AdminAuditLogs'));
+const BarcodeEngine       = lazy(() => import('./erp/BarcodeEngine'));
+const AdminSalesOrders    = lazy(() => import('./erp/AdminSalesOrders'));
+const AdminSettings       = lazy(() => import('./erp/AdminSettings'));
+const AdminRoleManagement = lazy(() => import('./erp/AdminRoleManagement'));
+const AdminSuperAdmin     = lazy(() => import('./erp/AdminSuperAdmin'));
 
 const formatBytes = (bytes) => {
   if (!bytes) return '0 B';
@@ -119,6 +123,37 @@ const cardStyle = {
   display: 'grid',
   gap: 4,
 };
+
+// ── Error boundary for ERP modules ────────────────────────────────────────────
+class ModuleErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(err) { console.error('ERP Module Error:', err); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 14, padding: '32px 24px', textAlign: 'center' }}>
+          <AlertTriangle size={32} color="#ef4444" style={{ margin: '0 auto 12px', display: 'block' }} />
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#991b1b', marginBottom: 8 }}>Module failed to load</div>
+          <div style={{ fontSize: 13, color: '#dc2626', marginBottom: 16 }}>{this.state.error?.message || 'An unexpected error occurred'}</div>
+          <button onClick={() => this.setState({ hasError: false, error: null })}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 9, border: 'none', cursor: 'pointer', background: '#f97316', color: '#fff', fontSize: 13, fontWeight: 600 }}>
+            <RefreshCw size={14} /> Try again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const ModuleLoader = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '8px 0' }}>
+    {Array.from({ length: 4 }).map((_, i) => (
+      <div key={i} className="skeleton" style={{ height: i === 0 ? 80 : 40, borderRadius: 12 }} />
+    ))}
+  </div>
+);
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -450,7 +485,11 @@ export default function AdminDashboard() {
         </header>
 
         <main style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-          {activeSection}
+          <ModuleErrorBoundary key={section}>
+            <Suspense fallback={<ModuleLoader />}>
+              {activeSection}
+            </Suspense>
+          </ModuleErrorBoundary>
         </main>
       </div>
     </div>
