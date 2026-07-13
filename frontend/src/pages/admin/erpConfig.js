@@ -68,17 +68,26 @@ export const ERP_MODULE_MAP = Object.fromEntries(
 
 export const canAccessModule = (user, module) => {
   if (!user || !module) return false;
-  if (user.role === 'super_admin') return true;
 
-  if (module.roles?.length && !module.roles.includes(user.role)) {
-    return false;
+  // super_admin and admin get full access to everything
+  if (user.role === 'super_admin' || user.role === 'admin') return true;
+
+  // Role-restricted items (e.g. super-admin panel)
+  if (module.roles?.length) {
+    return module.roles.includes(user.role);
   }
 
+  // Permission-restricted items
   if (!module.permissions?.length) {
-    return true;
+    return true; // no restrictions = visible to all authenticated admin roles
   }
 
   const userPermissions = user.permissions || [];
+  // If user has no permissions yet but is a business owner or store admin, show everything
+  if (userPermissions.length === 0 && ['business_owner', 'store_admin', 'store_manager'].includes(user.role)) {
+    return true;
+  }
+
   return module.permissions.some((permission) => userPermissions.includes(permission));
 };
 
