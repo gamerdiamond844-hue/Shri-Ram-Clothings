@@ -64,6 +64,9 @@ import AdminExpenses from './erp/AdminExpenses';
 import AdminAuditLogs from './erp/AdminAuditLogs';
 import BarcodeEngine from './erp/BarcodeEngine';
 import AdminSalesOrders from './erp/AdminSalesOrders';
+import AdminSettings from './erp/AdminSettings';
+import AdminRoleManagement from './erp/AdminRoleManagement';
+import AdminSuperAdmin from './erp/AdminSuperAdmin';
 import AdminModuleWorkspace from './AdminModuleWorkspace';
 import { ADMIN_ROUTE_ALIASES, ERP_MODULE_MAP, getVisibleNavGroups, canAccessModule } from './erpConfig';
 
@@ -172,6 +175,13 @@ export default function AdminDashboard() {
         return <BarcodeEngine />;
       case 'sales-orders':
         return <AdminSalesOrders />;
+      case 'settings':
+      case 'business-settings':
+        return <AdminSettings />;
+      case 'role-management':
+        return <AdminRoleManagement />;
+      case 'super-admin':
+        return <AdminSuperAdmin />;
       case 'homepage':
         return <AdminHomepage />;
       case 'products':
