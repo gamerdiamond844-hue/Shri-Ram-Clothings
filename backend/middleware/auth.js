@@ -27,6 +27,20 @@ const auth = async (req, res, next) => {
       [user.role]
     );
 
+    // For super_admin/admin with no business_id, auto-resolve to the first active business
+    if (!user.business_id && (user.role === 'super_admin' || user.role === 'admin')) {
+      try {
+        const bizRes = await pool.query(
+          `SELECT id FROM src_businesses WHERE is_active = TRUE ORDER BY id ASC LIMIT 1`
+        );
+        if (bizRes.rows.length) {
+          user.business_id = bizRes.rows[0].id;
+        }
+      } catch (e) {
+        // silently ignore — business may not exist yet
+      }
+    }
+
     req.user = {
       ...user,
       permissions: permRes.rows.map(r => r.name),
@@ -45,6 +59,8 @@ const requireRole = (...roles) => (req, res, next) => {
 };
 
 const requirePermission = (permission) => (req, res, next) => {
+  // super_admin and admin bypass all permission checks
+  if (req.user?.role === 'super_admin' || req.user?.role === 'admin') return next();
   if (!req.user || !req.user.permissions || !req.user.permissions.includes(permission)) {
     return res.status(403).json({ message: 'Permission denied' });
   }
@@ -52,6 +68,8 @@ const requirePermission = (permission) => (req, res, next) => {
 };
 
 const requireAnyPermission = (...permissions) => (req, res, next) => {
+  // super_admin and admin bypass all permission checks
+  if (req.user?.role === 'super_admin' || req.user?.role === 'admin') return next();
   const userPermissions = req.user?.permissions || [];
   if (!permissions.length || permissions.some((permission) => userPermissions.includes(permission))) {
     return next();

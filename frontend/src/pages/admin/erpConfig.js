@@ -91,10 +91,19 @@ export const canAccessModule = (user, module) => {
   return module.permissions.some((permission) => userPermissions.includes(permission));
 };
 
-export const getVisibleNavGroups = (user) =>
-  ERP_NAV_GROUPS
+export const getVisibleNavGroups = (user) => {
+  // If no user yet, return empty
+  if (!user) return [];
+
+  // admin and super_admin see everything
+  if (user.role === 'admin' || user.role === 'super_admin') {
+    return ERP_NAV_GROUPS;
+  }
+
+  return ERP_NAV_GROUPS
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => canAccessModule(user, item)),
     }))
     .filter((group) => group.items.length > 0);
+};

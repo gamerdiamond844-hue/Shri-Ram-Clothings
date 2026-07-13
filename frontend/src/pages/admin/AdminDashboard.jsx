@@ -257,22 +257,37 @@ export default function AdminDashboard() {
   }, [user]);
 
   useEffect(() => {
+    // Don't run routing until user is loaded
+    if (!user) return;
+
     const rawPath = location.pathname.replace(/^\/admin\/?/, '');
     const candidate = rawPath.split('/')[0] || 'dashboard';
     const normalized = ADMIN_ROUTE_ALIASES[candidate] || candidate;
-    const targetModule = ERP_MODULE_MAP[normalized];
 
-    if (!targetModule || !canAccessModule(user, targetModule)) {
-      const fallbackPath = defaultSection === 'dashboard' ? '/admin/dashboard' : `/admin/${defaultSection}`;
-      if (location.pathname !== fallbackPath) {
-        navigate(fallbackPath, { replace: true });
-      }
-      setSection(defaultSection);
+    // If path is just /admin or /admin/, go to dashboard
+    if (!candidate || candidate === '') {
+      setSection('dashboard');
       return;
     }
 
-    setSection(normalized);
-  }, [defaultSection, location.pathname, navigate, user]);
+    // Check if the module exists at all
+    const targetModule = ERP_MODULE_MAP[normalized];
+
+    // If module doesn't exist in the map, just show dashboard
+    if (!targetModule) {
+      setSection('dashboard');
+      return;
+    }
+
+    // If user can access it, show it
+    if (canAccessModule(user, targetModule)) {
+      setSection(normalized);
+      return;
+    }
+
+    // User can't access it — fall back to dashboard (always accessible for admin)
+    setSection('dashboard');
+  }, [location.pathname, user]);
 
   const activeNav = ERP_MODULE_MAP[section] || ERP_MODULE_MAP[defaultSection] || { label: 'Dashboard', description: 'Admin workspace' };
   const activeSection = renderSection(section);

@@ -878,6 +878,39 @@ const initDB = async () => {
       ON CONFLICT (email) DO NOTHING;
     `, ['Super Admin', defaultAdminEmail, defaultAdminPassword]);
 
+    // ── Seed default business, store and warehouse ──────────────────────────
+    await client.query(`
+      INSERT INTO src_businesses (name, slug, currency, timezone, is_active)
+      VALUES ('Shri Ram Clothings', 'shriramclothings', 'INR', 'Asia/Kolkata', TRUE)
+      ON CONFLICT (slug) DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_stores (business_id, name, slug, store_code, is_active)
+      SELECT b.id, 'Main Store', 'main-store', 'STORE-001', TRUE
+      FROM src_businesses b WHERE b.slug = 'shriramclothings'
+      ON CONFLICT (slug) DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_warehouses (business_id, name, is_active)
+      SELECT b.id, 'Main Warehouse', TRUE
+      FROM src_businesses b WHERE b.slug = 'shriramclothings'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM src_warehouses w JOIN src_businesses b2 ON b2.id = w.business_id WHERE b2.slug = 'shriramclothings'
+      );
+    `).catch(() => {}); // ignore if already exists
+
+    // Link admin user to default business
+    await client.query(`
+      UPDATE src_users u
+      SET business_id = b.id
+      FROM src_businesses b
+      WHERE b.slug = 'shriramclothings'
+        AND u.email = $1
+        AND u.business_id IS NULL;
+    `, [defaultAdminEmail]);
+
     console.log('✅ Shri Ram Clothings DB initialized');
   } finally {
     client.release();

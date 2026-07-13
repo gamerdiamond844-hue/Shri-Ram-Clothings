@@ -67,6 +67,20 @@ const getVisibleModuleGroups = (user) =>
 
 const getScopedBusinessId = (req) => req.tenant?.business_id || req.user?.business_id || null;
 
+// For super_admin with no business context, fetch the first business from DB
+const getEffectiveBusinessId = async (req) => {
+  const bid = getScopedBusinessId(req);
+  if (bid) return bid;
+  // super_admin without a business_id — use first available business
+  if (req.user?.role === 'super_admin') {
+    try {
+      const result = await pool.query('SELECT id FROM src_businesses WHERE is_active = TRUE ORDER BY id ASC LIMIT 1');
+      return result.rows[0]?.id || null;
+    } catch { return null; }
+  }
+  return null;
+};
+
 const buildTenantFilter = (req, column = 'business_id', startIndex = 1) => {
   const businessId = getScopedBusinessId(req);
   if (!businessId) return { clause: '', values: [] };
