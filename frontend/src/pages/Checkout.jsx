@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Plus, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -8,11 +8,13 @@ import toast from 'react-hot-toast';
 export default function Checkout() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const formRef = useRef(null);
   const { user } = useAuth();
   const [addresses, setAddresses] = useState([]);
   const [selectedAddr, setSelectedAddr] = useState(null);
   const [showAddrForm, setShowAddrForm] = useState(false);
   const [placing, setPlacing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [freeDelivery, setFreeDelivery] = useState(null); // null=loading, {eligible,expiry}
   const [addrForm, setAddrForm] = useState({ full_name: user?.name || '', mobile: user?.phone || '', address: '', city: '', state: '', pincode: '', landmark: '', is_default: false });
 
@@ -54,28 +56,84 @@ export default function Checkout() {
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
   };
 
+  const buildOrderPayload = () => state.items.map(item => ({
+    product_id: item.product_id,
+    variant_id: item.variant_id,
+    title: item.title,
+    size: item.size,
+    price: item.discount_percent > 0 ? Math.round(item.price * (1 - item.discount_percent / 100)) : item.price,
+    quantity: item.quantity,
+    image_url: item.image_url,
+  }));
+
   const handlePayment = async () => {
     if (!selectedAddr) return toast.error('Please select a delivery address');
     setPlacing(true);
+
+    const payload = {
+      items: buildOrderPayload(),
+      subtotal: state.subtotal,
+      discount_amount: state.discount,
+      total: finalTotal,
+      delivery_charge: shippingCost,
+      free_delivery_applied: isFreeDelivery,
+      coupon_code: state.coupon_code,
+      ...selectedAddr,
+      email: user.email,
+      payment_method: 'cod',
+    };
+
     try {
-      const orderItems = state.items.map(item => ({
-        product_id: item.product_id, variant_id: item.variant_id, title: item.title, size: item.size,
-        price: item.discount_percent > 0 ? Math.round(item.price * (1 - item.discount_percent / 100)) : item.price,
-        quantity: item.quantity, image_url: item.image_url,
-      }));
-
-      const res = await api.post('/orders', {
-        items: orderItems, subtotal: state.subtotal, discount_amount: state.discount,
-        total: finalTotal, delivery_charge: shippingCost,
-        free_delivery_applied: isFreeDelivery,
-        coupon_code: state.coupon_code, ...selectedAddr, email: user.email,
-        payment_method: 'cod',
-      });
-
+      const res = await api.post('/orders', payload);
       navigate('/order-success', { state: { order: res.data.order } });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Order placement failed');
     } finally {
+      setPlacing(false);
+    }
+  };
+
+  const handlePaytm = async () => {
+    if (!selectedAddr) return toast.error('Please select a delivery address');
+    setPlacing(true);
+
+    try {
+      const payload = {
+        items: buildOrderPayload(),
+        subtotal: state.subtotal,
+        discount_amount: state.discount,
+        total: finalTotal,
+        delivery_charge: shippingCost,
+        free_delivery_applied: isFreeDelivery,
+        coupon_code: state.coupon_code,
+        ...selectedAddr,
+        email: user.email,
+      };
+
+      const res = await api.post('/orders/paytm/initiate', payload);
+      const paytmUrl = res.data.paytmUrl;
+      const params = res.data.params || {};
+
+      if (!paytmUrl || !Object.keys(params).length) {
+        throw new Error('Invalid Paytm response');
+      }
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = paytmUrl;
+      form.style.display = 'none';
+      Object.entries(params).forEach(([key, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = value;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Paytm payment initiation failed');
       setPlacing(false);
     }
   };
@@ -93,15 +151,25 @@ export default function Checkout() {
         </div>
 
         <div className="checkout-grid">
-          {/* Address - spans 2 cols on desktop */}
           <div className="checkout-main">
             <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <MapPin size={15} color="#f97316" /> Delivery Address
                 </p>
-                <button onClick={() => setShowAddrForm(s => !s)} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#f97316', background: 'none', border: 'none', cursor: 'pointer' }}>
-                  {showAddrForm ? <><X size={13} /> Cancel</> : <><Plus size={13} /> Add New</>}
+                <button
+                  onClick={() => setShowAddrForm((s) => !s)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#f97316', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  {showAddrForm ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <X size={13} /> Cancel
+                    </span>
+                  ) : (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Plus size={13} /> Add New
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -109,9 +177,23 @@ export default function Checkout() {
                 {showAddrForm && (
                   <form onSubmit={saveAddress} style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, padding: 16, marginBottom: 4 }}>
                     <div className="form-grid-2">
-                      {[['full_name','Full Name',true],['mobile','Mobile Number',true],['address','Street Address',true],['city','City',true],['state','State',true],['pincode','Pincode',true],['landmark','Landmark (Optional)',false]].map(([field, label, required]) => (
+                      {[
+                        ['full_name', 'Full Name', true],
+                        ['mobile', 'Mobile Number', true],
+                        ['address', 'Street Address', true],
+                        ['city', 'City', true],
+                        ['state', 'State', true],
+                        ['pincode', 'Pincode', true],
+                        ['landmark', 'Landmark (Optional)', false],
+                      ].map(([field, label, required]) => (
                         <div key={field} className={field === 'full_name' || field === 'address' || field === 'landmark' ? 'col-span-2' : ''}>
-                          <input required={required} value={addrForm[field] || ''} onChange={e => setAddrForm(p => ({ ...p, [field]: e.target.value }))} placeholder={label} style={inp} />
+                          <input
+                            required={required}
+                            value={addrForm[field] || ''}
+                            onChange={(e) => setAddrForm((p) => ({ ...p, [field]: e.target.value }))}
+                            placeholder={label}
+                            style={inp}
+                          />
                         </div>
                       ))}
                     </div>
@@ -122,24 +204,63 @@ export default function Checkout() {
                   </form>
                 )}
 
-                {addresses.map(addr => (
-                  <label key={addr.id} style={{ display: 'flex', gap: 12, padding: 16, borderRadius: 12, border: `2px solid ${selectedAddr?.id === addr.id ? '#111827' : '#f3f4f6'}`, cursor: 'pointer', background: selectedAddr?.id === addr.id ? '#f9fafb' : '#fff', transition: 'all 0.15s' }}>
-                    <input type="radio" name="address" checked={selectedAddr?.id === addr.id} onChange={() => setSelectedAddr(addr)} style={{ marginTop: 2, accentColor: '#f97316', flexShrink: 0 }} />
+                {addresses.map((addr) => (
+                  <label
+                    key={addr.id}
+                    style={{
+                      display: 'flex',
+                      gap: 12,
+                      padding: 16,
+                      borderRadius: 12,
+                      border: `2px solid ${selectedAddr?.id === addr.id ? '#111827' : '#f3f4f6'}`,
+                      cursor: 'pointer',
+                      background: selectedAddr?.id === addr.id ? '#f9fafb' : '#fff',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="address"
+                      checked={selectedAddr?.id === addr.id}
+                      onChange={() => setSelectedAddr(addr)}
+                      style={{ marginTop: 2, accentColor: '#f97316', flexShrink: 0 }}
+                    />
                     <div style={{ fontSize: 13, minWidth: 0 }}>
-                      <p style={{ fontWeight: 600, color: '#111827' }}>{addr.full_name} <span style={{ color: '#9ca3af', fontWeight: 400 }}>· {addr.mobile}</span></p>
-                      <p style={{ color: '#6b7280', marginTop: 3, fontSize: 12, lineHeight: 1.5 }}>{addr.address}, {addr.city}, {addr.state} — {addr.pincode}</p>
-                      {addr.landmark && <p style={{ color: '#9ca3af', fontSize: 12 }}>Near: {addr.landmark}</p>}
-                      {addr.is_default && <span style={{ fontSize: 10, fontWeight: 700, color: '#f97316', background: '#fff7ed', padding: '2px 7px', borderRadius: 10, display: 'inline-block', marginTop: 4 }}>Default</span>}
+                      <p style={{ fontWeight: 600, color: '#111827' }}>
+                        {addr.full_name} <span style={{ color: '#9ca3af', fontWeight: 400 }}>· {addr.mobile}</span>
+                      </p>
+                      <p style={{ color: '#6b7280', marginTop: 3, fontSize: 12, lineHeight: 1.5 }}>
+                        {addr.address}, {addr.city}, {addr.state} - {addr.pincode}
+                      </p>
+                      {addr.landmark ? <p style={{ color: '#9ca3af', fontSize: 12 }}>Near: {addr.landmark}</p> : null}
+                      {addr.is_default ? (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#f97316', background: '#fff7ed', padding: '2px 7px', borderRadius: 10, display: 'inline-block', marginTop: 4 }}>
+                          Default
+                        </span>
+                      ) : null}
                     </div>
                   </label>
                 ))}
 
-                {!addresses.length && !showAddrForm && (
+                {!addresses.length && !showAddrForm ? (
                   <div style={{ textAlign: 'center', padding: '32px 0', color: '#9ca3af' }}>
                     <MapPin size={28} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
                     <p style={{ fontSize: 13 }}>No saved addresses. Add one above.</p>
                   </div>
-                )}
+                ) : null}
+
+                <div style={{ marginTop: 12, padding: 16, borderRadius: 16, background: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>Payment method</div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer' }}>
+                    <input type="radio" name="payment" value="cod" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} style={{ accentColor: '#f97316' }} />
+                    <span style={{ fontSize: 13, color: '#111827' }}>Cash on Delivery</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                    <input type="radio" name="payment" value="paytm" checked={paymentMethod === 'paytm'} onChange={() => setPaymentMethod('paytm')} style={{ accentColor: '#f97316' }} />
+                    <span style={{ fontSize: 13, color: '#111827' }}>Online payment with Paytm</span>
+                  </label>
+                  <p style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>Paytm billing is enabled for online checkout. Your order is created securely and Paytm handles the payment verification.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -187,12 +308,14 @@ export default function Checkout() {
               </div>
             </div>
 
-            <button onClick={handlePayment} disabled={placing || !selectedAddr} className="btn-orange"
+            <button onClick={paymentMethod === 'paytm' ? handlePaytm : handlePayment} disabled={placing || !selectedAddr} className="btn-orange"
               style={{ width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              {placing ? 'Processing...' : 'Place Order'}
+              {placing ? 'Processing...' : paymentMethod === 'paytm' ? 'Pay with Paytm' : 'Place Order'}
             </button>
             <div style={{ fontSize: 13, color: '#6b7280', textAlign: 'center' }}>
-              Cash on Delivery only. Pay when your order is delivered.
+              {paymentMethod === 'paytm'
+                ? 'Your payment will be completed through Paytm and the order will be confirmed after successful verification.'
+                : 'Cash on Delivery only. Pay when your order is delivered.'}
             </div>
           </div>
         </div>

@@ -1,15 +1,34 @@
 const router = require('express').Router();
-const { auth, requireRole } = require('../middleware/auth');
+const { auth, requireRole, requirePermission, requireAnyPermission } = require('../middleware/auth');
 const erp = require('../controllers/erpController');
 const domainCtrl = require('../controllers/domainController');
 
-const adminGuard = [auth, requireRole('admin', 'super_admin', 'business_owner', 'store_admin', 'store_manager', 'cashier', 'warehouse_manager', 'accountant')];
+const adminRoles = ['admin', 'super_admin', 'business_owner', 'store_admin', 'store_manager', 'cashier', 'warehouse_manager', 'accountant', 'employee'];
+const adminGuard = [auth, requireRole(...adminRoles)];
 const superAdminGuard = [auth, requireRole('super_admin')];
+const dashboardGuard = [...adminGuard, requirePermission('erp.view_dashboard')];
+const posGuard = [...adminGuard, requireAnyPermission('erp.manage_pos', 'erp.manage_orders', 'erp.manage_finance')];
+const inventoryGuard = [...adminGuard, requirePermission('erp.manage_inventory')];
+const warehouseGuard = [...adminGuard, requireAnyPermission('erp.manage_warehouse', 'erp.manage_inventory')];
+const reportsGuard = [...adminGuard, requirePermission('erp.view_reports')];
+const settingsGuard = [...adminGuard, requirePermission('erp.manage_settings')];
+const auditGuard = [...adminGuard, requirePermission('erp.view_audit_logs')];
 
-router.get('/dashboard', ...adminGuard, erp.getDashboard);
+router.get('/dashboard', ...dashboardGuard, erp.getDashboard);
+router.get('/bootstrap', ...dashboardGuard, erp.getBootstrap);
 router.get('/modules', ...adminGuard, erp.getModules);
-router.get('/settings', ...adminGuard, erp.getSettings);
 router.get('/tenant', ...adminGuard, erp.getTenantInfo);
+router.get('/pos/overview', ...posGuard, erp.getPosOverview);
+router.get('/inventory/overview', ...inventoryGuard, erp.getInventoryOverview);
+router.get('/warehouse/overview', ...warehouseGuard, erp.getWarehouseOverview);
+router.post('/warehouse/transfer', ...warehouseGuard, erp.createWarehouseTransfer);
+router.post('/warehouse/damage',   ...warehouseGuard, erp.recordDamage);
+router.post('/warehouse/count',    ...warehouseGuard, erp.recordStockCount);
+router.get('/reports/overview', ...reportsGuard, erp.getReportsOverview);
+router.get('/audit-logs', ...auditGuard, erp.getAuditLogs);
+router.get('/audit-logs/paginated', ...auditGuard, erp.listAuditLogs);
+router.get('/audit-logs/export',    ...auditGuard, erp.exportAuditLogs);
+router.get('/settings', ...settingsGuard, erp.getSettings);
 
 router.get('/businesses', ...superAdminGuard, erp.listBusinesses);
 router.get('/stores', ...superAdminGuard, erp.listStores);

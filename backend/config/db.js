@@ -434,6 +434,255 @@ const initDB = async () => {
         details TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS src_erp_brands (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        name VARCHAR(150) NOT NULL,
+        slug VARCHAR(180) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE (business_id, slug)
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_customers (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        customer_code VARCHAR(40) UNIQUE NOT NULL,
+        name VARCHAR(180) NOT NULL,
+        phone VARCHAR(30),
+        email VARCHAR(150),
+        gst_number VARCHAR(50),
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        pincode VARCHAR(20),
+        loyalty_points INTEGER DEFAULT 0,
+        store_credit DECIMAL(12,2) DEFAULT 0,
+        outstanding_amount DECIMAL(12,2) DEFAULT 0,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_suppliers (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        supplier_code VARCHAR(40) UNIQUE NOT NULL,
+        name VARCHAR(180) NOT NULL,
+        phone VARCHAR(30),
+        email VARCHAR(150),
+        gst_number VARCHAR(50),
+        address TEXT,
+        payment_terms_days INTEGER DEFAULT 0,
+        balance_due DECIMAL(12,2) DEFAULT 0,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_inventory_items (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        warehouse_id INTEGER REFERENCES src_warehouses(id) ON DELETE SET NULL,
+        brand_id INTEGER REFERENCES src_erp_brands(id) ON DELETE SET NULL,
+        supplier_id INTEGER REFERENCES src_erp_suppliers(id) ON DELETE SET NULL,
+        title VARCHAR(220) NOT NULL,
+        category VARCHAR(120),
+        subcategory VARCHAR(120),
+        department VARCHAR(120),
+        collection_name VARCHAR(120),
+        sku VARCHAR(80) UNIQUE NOT NULL,
+        barcode VARCHAR(80) UNIQUE,
+        internal_product_id VARCHAR(80) UNIQUE NOT NULL,
+        hsn_code VARCHAR(30),
+        gst_rate DECIMAL(5,2) DEFAULT 0,
+        variant_color VARCHAR(60),
+        variant_size VARCHAR(60),
+        purchase_price DECIMAL(12,2) DEFAULT 0,
+        selling_price DECIMAL(12,2) DEFAULT 0,
+        mrp DECIMAL(12,2) DEFAULT 0,
+        reorder_level INTEGER DEFAULT 0,
+        current_stock INTEGER DEFAULT 0,
+        unit_weight DECIMAL(10,2) DEFAULT 0,
+        rack_code VARCHAR(50),
+        shelf_code VARCHAR(50),
+        batch_no VARCHAR(80),
+        serial_no VARCHAR(120),
+        expiry_date DATE,
+        manufacturing_date DATE,
+        image_url TEXT,
+        status VARCHAR(30) DEFAULT 'active' CHECK (status IN ('active','inactive','archived')),
+        created_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_inventory_movements (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        inventory_item_id INTEGER REFERENCES src_erp_inventory_items(id) ON DELETE CASCADE,
+        warehouse_id INTEGER REFERENCES src_warehouses(id) ON DELETE SET NULL,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        movement_type VARCHAR(30) NOT NULL CHECK (movement_type IN ('opening','purchase','sale','return','adjustment','damage','transfer_in','transfer_out','count')),
+        quantity INTEGER NOT NULL,
+        balance_after INTEGER NOT NULL,
+        reference_type VARCHAR(40),
+        reference_id VARCHAR(80),
+        notes TEXT,
+        created_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_sales (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        warehouse_id INTEGER REFERENCES src_warehouses(id) ON DELETE SET NULL,
+        customer_id INTEGER REFERENCES src_erp_customers(id) ON DELETE SET NULL,
+        cashier_id INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        bill_no VARCHAR(50) UNIQUE NOT NULL,
+        channel VARCHAR(30) DEFAULT 'pos',
+        payment_status VARCHAR(20) DEFAULT 'paid' CHECK (payment_status IN ('pending','partial','paid','failed','refunded')),
+        payment_method VARCHAR(30) DEFAULT 'cash',
+        split_payment JSONB DEFAULT '[]'::jsonb,
+        discount_amount DECIMAL(12,2) DEFAULT 0,
+        tax_amount DECIMAL(12,2) DEFAULT 0,
+        round_off DECIMAL(12,2) DEFAULT 0,
+        total DECIMAL(12,2) NOT NULL,
+        notes TEXT,
+        status VARCHAR(20) DEFAULT 'completed' CHECK (status IN ('draft','hold','completed','void','returned')),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_sale_items (
+        id SERIAL PRIMARY KEY,
+        sale_id INTEGER REFERENCES src_erp_sales(id) ON DELETE CASCADE,
+        inventory_item_id INTEGER REFERENCES src_erp_inventory_items(id) ON DELETE SET NULL,
+        title VARCHAR(220) NOT NULL,
+        sku VARCHAR(80),
+        quantity INTEGER NOT NULL,
+        unit_price DECIMAL(12,2) NOT NULL,
+        tax_amount DECIMAL(12,2) DEFAULT 0,
+        discount_amount DECIMAL(12,2) DEFAULT 0,
+        line_total DECIMAL(12,2) NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_pos_holds (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        hold_code VARCHAR(40) UNIQUE NOT NULL,
+        customer_name VARCHAR(180),
+        cart_payload JSONB NOT NULL DEFAULT '[]'::jsonb,
+        total DECIMAL(12,2) DEFAULT 0,
+        held_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        held_at TIMESTAMP DEFAULT NOW(),
+        resumed_at TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_expenses (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        category VARCHAR(120) NOT NULL,
+        title VARCHAR(180) NOT NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        payment_mode VARCHAR(30) DEFAULT 'cash',
+        expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        notes TEXT,
+        created_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_attendance (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        employee_id INTEGER REFERENCES src_users(id) ON DELETE CASCADE,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        attendance_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        check_in TIMESTAMP,
+        check_out TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'present' CHECK (status IN ('present','absent','half_day','leave')),
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE (employee_id, attendance_date)
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_purchase_orders (
+        id              SERIAL PRIMARY KEY,
+        business_id     INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        store_id        INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        po_number       TEXT NOT NULL,
+        supplier_id     INTEGER REFERENCES src_erp_suppliers(id) ON DELETE SET NULL,
+        status          VARCHAR(30) DEFAULT 'draft' CHECK (status IN ('draft','ordered','partial','received','cancelled')),
+        expected_date   DATE,
+        freight_amount  DECIMAL(12,2) DEFAULT 0,
+        subtotal        DECIMAL(12,2) DEFAULT 0,
+        tax_amount      DECIMAL(12,2) DEFAULT 0,
+        total           DECIMAL(12,2) DEFAULT 0,
+        notes           TEXT,
+        created_by      INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        created_at      TIMESTAMP DEFAULT NOW(),
+        updated_at      TIMESTAMP DEFAULT NOW(),
+        UNIQUE(business_id, po_number)
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_purchase_items (
+        id                  SERIAL PRIMARY KEY,
+        purchase_order_id   INTEGER REFERENCES src_erp_purchase_orders(id) ON DELETE CASCADE,
+        inventory_item_id   INTEGER REFERENCES src_erp_inventory_items(id) ON DELETE SET NULL,
+        title               VARCHAR(220),
+        sku                 VARCHAR(80),
+        hsn_code            VARCHAR(30),
+        gst_rate            DECIMAL(5,2) DEFAULT 0,
+        quantity_ordered    INTEGER NOT NULL DEFAULT 0,
+        quantity_received   INTEGER DEFAULT 0,
+        unit_cost           DECIMAL(12,2) NOT NULL DEFAULT 0,
+        line_total          DECIMAL(12,2) DEFAULT 0,
+        created_at          TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_returns (
+        id                  SERIAL PRIMARY KEY,
+        business_id         INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        store_id            INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        return_no           TEXT NOT NULL,
+        original_sale_id    INTEGER REFERENCES src_erp_sales(id) ON DELETE SET NULL,
+        customer_id         INTEGER REFERENCES src_erp_customers(id) ON DELETE SET NULL,
+        return_type         VARCHAR(30) DEFAULT 'refund' CHECK (return_type IN ('refund','store_credit','exchange')),
+        status              VARCHAR(20) DEFAULT 'completed' CHECK (status IN ('pending','completed','cancelled')),
+        total_amount        DECIMAL(12,2) DEFAULT 0,
+        notes               TEXT,
+        processed_by        INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        created_at          TIMESTAMP DEFAULT NOW(),
+        UNIQUE(business_id, return_no)
+      );
+
+      CREATE TABLE IF NOT EXISTS src_erp_return_items (
+        id                  SERIAL PRIMARY KEY,
+        return_id           INTEGER REFERENCES src_erp_returns(id) ON DELETE CASCADE,
+        sale_item_id        INTEGER REFERENCES src_erp_sale_items(id) ON DELETE SET NULL,
+        inventory_item_id   INTEGER REFERENCES src_erp_inventory_items(id) ON DELETE SET NULL,
+        title               VARCHAR(220),
+        quantity            INTEGER NOT NULL DEFAULT 0,
+        unit_price          DECIMAL(12,2) DEFAULT 0,
+        line_total          DECIMAL(12,2) DEFAULT 0,
+        created_at          TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_erp_inventory_business ON src_erp_inventory_items(business_id);
+      CREATE INDEX IF NOT EXISTS idx_erp_inventory_stock ON src_erp_inventory_items(current_stock);
+      CREATE INDEX IF NOT EXISTS idx_erp_movements_item ON src_erp_inventory_movements(inventory_item_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_erp_sales_business_date ON src_erp_sales(business_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_erp_expenses_business_date ON src_erp_expenses(business_id, expense_date DESC);
+      CREATE INDEX IF NOT EXISTS idx_erp_purchase_orders_business ON src_erp_purchase_orders(business_id);
+      CREATE INDEX IF NOT EXISTS idx_erp_returns_business ON src_erp_returns(business_id);
+      CREATE INDEX IF NOT EXISTS idx_erp_attendance_business_date ON src_erp_attendance(business_id, attendance_date DESC);
     `);
 
     // ── Migrations: add columns if they don't exist ──
@@ -551,7 +800,10 @@ const initDB = async () => {
         ('erp.manage_notifications', 'Send notifications and campaigns', 'ERP'),
         ('erp.view_reports', 'View sales and business reports', 'ERP'),
         ('erp.manage_settings', 'Manage business settings', 'ERP'),
-        ('erp.manage_suppliers', 'Manage suppliers and purchase orders', 'ERP')
+        ('erp.manage_suppliers', 'Manage suppliers and purchase orders', 'ERP'),
+        ('erp.view_audit_logs', 'View immutable audit logs', 'ERP'),
+        ('erp.manage_pos', 'Operate billing POS and held bills', 'ERP'),
+        ('erp.manage_warehouse', 'Manage warehouses and stock transfers', 'ERP')
       ON CONFLICT (name) DO NOTHING;
     `);
 
@@ -565,49 +817,56 @@ const initDB = async () => {
     await client.query(`
       INSERT INTO src_role_permissions (role, permission_id)
         SELECT 'admin', p.id FROM src_permissions p
-        WHERE p.name IN ('erp.view_dashboard','erp.manage_users','erp.manage_orders','erp.manage_inventory','erp.view_reports','erp.manage_settings','erp.manage_notifications')
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_users','erp.manage_orders','erp.manage_inventory','erp.view_reports','erp.manage_settings','erp.manage_notifications','erp.view_audit_logs','erp.manage_pos','erp.manage_warehouse','erp.manage_suppliers')
       ON CONFLICT DO NOTHING;
     `);
 
     await client.query(`
       INSERT INTO src_role_permissions (role, permission_id)
         SELECT 'business_owner', p.id FROM src_permissions p
-        WHERE p.name IN ('erp.view_dashboard','erp.manage_users','erp.manage_orders','erp.manage_inventory','erp.view_reports','erp.manage_settings','erp.manage_finance')
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_users','erp.manage_orders','erp.manage_inventory','erp.view_reports','erp.manage_settings','erp.manage_finance','erp.manage_suppliers','erp.view_audit_logs','erp.manage_pos','erp.manage_warehouse')
       ON CONFLICT DO NOTHING;
     `);
 
     await client.query(`
       INSERT INTO src_role_permissions (role, permission_id)
         SELECT 'store_admin', p.id FROM src_permissions p
-        WHERE p.name IN ('erp.view_dashboard','erp.manage_orders','erp.manage_inventory','erp.manage_users','erp.manage_notifications')
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_orders','erp.manage_inventory','erp.manage_users','erp.manage_notifications','erp.manage_pos','erp.manage_warehouse','erp.view_reports')
       ON CONFLICT DO NOTHING;
     `);
 
     await client.query(`
       INSERT INTO src_role_permissions (role, permission_id)
         SELECT 'store_manager', p.id FROM src_permissions p
-        WHERE p.name IN ('erp.view_dashboard','erp.manage_orders','erp.manage_inventory','erp.manage_notifications')
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_orders','erp.manage_inventory','erp.manage_notifications','erp.manage_pos','erp.manage_warehouse','erp.view_reports')
       ON CONFLICT DO NOTHING;
     `);
 
     await client.query(`
       INSERT INTO src_role_permissions (role, permission_id)
         SELECT 'cashier', p.id FROM src_permissions p
-        WHERE p.name IN ('erp.view_dashboard','erp.manage_orders','erp.manage_finance')
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_orders','erp.manage_finance','erp.manage_pos')
       ON CONFLICT DO NOTHING;
     `);
 
     await client.query(`
       INSERT INTO src_role_permissions (role, permission_id)
         SELECT 'warehouse_manager', p.id FROM src_permissions p
-        WHERE p.name IN ('erp.view_dashboard','erp.manage_inventory','erp.manage_orders')
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_inventory','erp.manage_orders','erp.manage_warehouse','erp.view_reports')
       ON CONFLICT DO NOTHING;
     `);
 
     await client.query(`
       INSERT INTO src_role_permissions (role, permission_id)
         SELECT 'accountant', p.id FROM src_permissions p
-        WHERE p.name IN ('erp.view_dashboard','erp.manage_finance','erp.view_reports')
+        WHERE p.name IN ('erp.view_dashboard','erp.manage_finance','erp.view_reports','erp.view_audit_logs')
+      ON CONFLICT DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'employee', p.id FROM src_permissions p
+        WHERE p.name IN ('erp.view_dashboard')
       ON CONFLICT DO NOTHING;
     `);
 
@@ -625,4 +884,23 @@ const initDB = async () => {
   }
 };
 
-module.exports = { pool, initDB };
+/**
+ * Append an immutable audit log entry.
+ * Must be called with a pg client (not pool) when inside a transaction.
+ * @param {import('pg').Client | import('pg').Pool} db - pool or transaction client
+ * @param {{ adminId?: number, action: string, targetType?: string, targetId?: number|string, details?: string }} opts
+ */
+const logAudit = async (db, { adminId = null, action, targetType = null, targetId = null, details = null }) => {
+  try {
+    await db.query(
+      `INSERT INTO src_activity_logs (admin_id, action, target_type, target_id, details)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [adminId, action, targetType, targetId ? String(targetId) : null, details]
+    );
+  } catch (err) {
+    // Never throw from audit — log failure silently so it doesn't break the main transaction
+    console.error('Audit log error:', err.message);
+  }
+};
+
+module.exports = { pool, initDB, logAudit };

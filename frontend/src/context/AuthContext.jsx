@@ -44,8 +44,9 @@ export function AuthProvider({ children }) {
 
     api.get('/auth/me')
       .then(res => {
-        setUser(res.data);
-        localStorage.setItem('src_user', JSON.stringify(res.data));
+        const nextUser = { ...res.data, permissions: res.data.permissions || [] };
+        setUser(nextUser);
+        localStorage.setItem('src_user', JSON.stringify(nextUser));
         fetchCart();
         fetchWishlist();
         fetchNotifCount();
@@ -68,9 +69,10 @@ export function AuthProvider({ children }) {
   }, [user, fetchNotifCount]);
 
   const login = (token, userData) => {
+    const nextUser = { ...userData, permissions: userData.permissions || [] };
     localStorage.setItem('src_token', token);
-    localStorage.setItem('src_user', JSON.stringify(userData));
-    setUser(userData);
+    localStorage.setItem('src_user', JSON.stringify(nextUser));
+    setUser(nextUser);
     fetchCart();
     fetchWishlist();
     fetchNotifCount();

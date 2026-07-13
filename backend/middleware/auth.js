@@ -51,4 +51,12 @@ const requirePermission = (permission) => (req, res, next) => {
   next();
 };
 
-module.exports = { auth, requireRole, requirePermission };
+const requireAnyPermission = (...permissions) => (req, res, next) => {
+  const userPermissions = req.user?.permissions || [];
+  if (!permissions.length || permissions.some((permission) => userPermissions.includes(permission))) {
+    return next();
+  }
+  return res.status(403).json({ message: 'Permission denied' });
+};
+
+module.exports = { auth, requireRole, requirePermission, requireAnyPermission };

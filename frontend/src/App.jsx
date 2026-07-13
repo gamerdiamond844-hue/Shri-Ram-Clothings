@@ -20,6 +20,7 @@ const ResetPassword  = lazy(() => import('./pages/ResetPassword'));
 const Cart          = lazy(() => import('./pages/Cart'));
 const Checkout      = lazy(() => import('./pages/Checkout'));
 const OrderSuccess  = lazy(() => import('./pages/OrderSuccess'));
+const OrderFailed   = lazy(() => import('./pages/OrderFailed'));
 const Orders        = lazy(() => import('./pages/Orders'));
 const Wishlist      = lazy(() => import('./pages/Wishlist'));
 const Profile       = lazy(() => import('./pages/Profile'));
@@ -86,6 +87,7 @@ export default function App() {
                   <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
                   <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
                   <Route path="/order-success" element={<ProtectedRoute><OrderSuccess /></ProtectedRoute>} />
+                  <Route path="/order-failed" element={<ProtectedRoute><OrderFailed /></ProtectedRoute>} />
                   <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
                   <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

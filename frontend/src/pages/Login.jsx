@@ -6,6 +6,8 @@ import api from '../utils/api';
 import toast from 'react-hot-toast';
 import GoogleButton from '../components/GoogleButton';
 
+const ADMIN_ROLES = ['admin', 'super_admin', 'business_owner', 'store_admin', 'store_manager', 'cashier', 'warehouse_manager', 'accountant'];
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -15,7 +17,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const redirectAfterLogin = (user) => {
-    navigate(state?.from || (user.role === 'admin' ? '/admin' : '/'));
+    navigate(state?.from || (ADMIN_ROLES.includes(user.role) ? '/admin/dashboard' : '/'));
   };
 
   const handleGoogleSuccess = (data) => {

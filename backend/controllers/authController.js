@@ -7,6 +7,23 @@ const { sendMail } = require('../services/mailService');
 const signToken = (user) =>
   jwt.sign({ id: user.id, role: user.role, business_id: user.business_id || null, store_id: user.store_id || null, warehouse_id: user.warehouse_id || null }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+const getRolePermissions = async (role) => {
+  if (!role) return [];
+  const permRes = await pool.query(
+    `SELECT p.name
+     FROM src_permissions p
+     JOIN src_role_permissions rp ON rp.permission_id = p.id
+     WHERE rp.role = $1`,
+    [role]
+  );
+  return permRes.rows.map((row) => row.name);
+};
+
+const enrichUser = async (user) => ({
+  ...user,
+  permissions: await getRolePermissions(user.role),
+});
+
 const register = async (req, res) => {
   const { name, email, password, phone } = req.body;
   if (!name || !email || !password)
@@ -18,11 +35,11 @@ const register = async (req, res) => {
     const result = await pool.query(
       `INSERT INTO src_users (name, email, password, phone, business_id, store_id)
        VALUES ($1,$2,$3,$4,$5,$6)
-       RETURNING id, name, email, role, avatar_url, phone, business_id, store_id`,
+       RETURNING id, name, email, role, avatar_url, phone, business_id, store_id, warehouse_id`,
       [name, email, hash, phone || null, req.tenant?.business_id || null, req.tenant?.store_id || null]
     );
     const user = result.rows[0];
-    res.status(201).json({ token: signToken(user), user });
+    res.status(201).json({ token: signToken(user), user: await enrichUser(user) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -38,7 +55,7 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     if (user.is_banned) return res.status(403).json({ message: 'Account has been banned' });
     const { password: _, ...safeUser } = user;
-    res.json({ token: signToken(user), user: safeUser });
+    res.json({ token: signToken(user), user: await enrichUser(safeUser) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -47,12 +64,15 @@ const login = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email, role, avatar_url, phone, is_banned, created_at FROM src_users WHERE id=$1',
+      'SELECT id, name, email, role, avatar_url, phone, is_banned, created_at, business_id, store_id, warehouse_id, auth_provider FROM src_users WHERE id=$1',
       [req.user.id]
     );
     if (!result.rows.length) return res.status(404).json({ message: 'User not found' });
     if (result.rows[0].is_banned) return res.status(403).json({ message: 'Account banned' });
-    res.json(result.rows[0]);
+    res.json({
+      ...result.rows[0],
+      permissions: req.user.permissions || await getRolePermissions(result.rows[0].role),
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -70,10 +90,10 @@ const updateProfile = async (req, res) => {
     if (!fields.length) return res.status(400).json({ message: 'Nothing to update' });
     values.push(req.user.id);
     const result = await pool.query(
-      `UPDATE src_users SET ${fields.join(',')} WHERE id=$${idx} RETURNING id, name, email, role, avatar_url, phone`,
+      `UPDATE src_users SET ${fields.join(',')} WHERE id=$${idx} RETURNING id, name, email, role, avatar_url, phone, business_id, store_id, warehouse_id, auth_provider`,
       values
     );
-    res.json(result.rows[0]);
+    res.json(await enrichUser(result.rows[0]));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -180,11 +200,11 @@ const googleLogin = async (req, res) => {
 
     // Re-fetch clean user
     const fresh = await pool.query(
-      'SELECT id, name, email, role, avatar_url, phone, is_banned, created_at, auth_provider FROM src_users WHERE id=$1',
+      'SELECT id, name, email, role, avatar_url, phone, is_banned, created_at, auth_provider, business_id, store_id, warehouse_id FROM src_users WHERE id=$1',
       [user.id]
     );
     const safeUser = fresh.rows[0];
-    res.json({ token: signToken(safeUser), user: safeUser });
+    res.json({ token: signToken(safeUser), user: await enrichUser(safeUser) });
   } catch (err) {
     console.error('Google login error:', err.message);
     res.status(401).json({ message: 'Google authentication failed. Please try again.' });
