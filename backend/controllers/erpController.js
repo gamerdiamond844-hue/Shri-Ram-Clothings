@@ -661,15 +661,21 @@ const listBusinesses = async (_, res) => {
   }
 };
 
-const listStores = async (_, res) => {
+const listStores = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT s.id, s.name, s.slug, s.store_code, s.address, s.phone, s.email, s.business_id, s.is_active,
-              b.name AS business_name
-       FROM src_stores s
-       LEFT JOIN src_businesses b ON b.id = s.business_id
-       ORDER BY s.created_at DESC`
-    );
+    const businessId = getScopedBusinessId(req);
+    const baseQuery = `
+      SELECT s.id, s.name, s.slug, s.store_code, s.address, s.phone, s.email, s.business_id, s.is_active,
+             b.name AS business_name
+      FROM src_stores s
+      LEFT JOIN src_businesses b ON b.id = s.business_id
+    `;
+
+    const query = req.user?.role === 'super_admin'
+      ? `${baseQuery} ORDER BY s.created_at DESC`
+      : `${baseQuery} WHERE s.business_id = $1 ORDER BY s.created_at DESC`;
+
+    const result = await pool.query(query, req.user?.role === 'super_admin' ? [] : [businessId]);
     res.json({ stores: result.rows });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -1086,6 +1092,159 @@ const exportAuditLogs = async (req, res) => {
   }
 };
 
+const updateSettings = async (req, res) => {
+  try {
+    const businessId = getScopedBusinessId(req);
+    if (!businessId) return res.status(400).json({ message: 'Business context required' });
+
+    const {
+      business_profile,
+      loyalty_rate,
+      min_redemption,
+      upi_ids,
+      default_printer,
+      business_settings,
+    } = req.body;
+
+    const updates = {};
+
+    // Update business profile fields
+    if (business_profile) {
+      const { name, gst_number, phone, email, address, currency, timezone } = business_profile;
+      if (name !== undefined) updates.name = name;
+      if (gst_number !== undefined) updates.gst_number = gst_number;
+      if (phone !== undefined) updates.phone = phone;
+      if (email !== undefined) updates.email = email;
+      if (address !== undefined) updates.address = address;
+      if (currency !== undefined) updates.currency = currency;
+      if (timezone !== undefined) updates.timezone = timezone;
+    }
+
+    // Update business settings (JSON)
+    const businessSettings = {};
+    const settingsPayload = business_settings || {};
+    if (settingsPayload.loyalty_rate !== undefined) businessSettings.loyalty_rate = Number(settingsPayload.loyalty_rate);
+    if (settingsPayload.min_redemption !== undefined) businessSettings.min_redemption = Number(settingsPayload.min_redemption);
+    if (settingsPayload.upi_ids !== undefined && Array.isArray(settingsPayload.upi_ids)) businessSettings.upi_ids = settingsPayload.upi_ids;
+    if (settingsPayload.default_printer !== undefined) businessSettings.default_printer = settingsPayload.default_printer;
+
+    if (loyalty_rate !== undefined) businessSettings.loyalty_rate = Number(loyalty_rate);
+    if (min_redemption !== undefined) businessSettings.min_redemption = Number(min_redemption);
+    if (upi_ids !== undefined && Array.isArray(upi_ids)) businessSettings.upi_ids = upi_ids;
+    if (default_printer !== undefined) businessSettings.default_printer = default_printer;
+
+    // Build update query
+    let query = 'UPDATE src_businesses SET ';
+    const values = [];
+    let paramCount = 1;
+
+    Object.entries(updates).forEach(([key, val], idx) => {
+      if (idx > 0) query += ', ';
+      query += `${key} = $${paramCount}`;
+      values.push(val);
+      paramCount++;
+    });
+
+    // Always update settings JSON
+    if (query.includes('SET')) query += ', ';
+    query += `settings = COALESCE(settings, '{}'::jsonb) || $${paramCount}`;
+    values.push(JSON.stringify(businessSettings));
+    paramCount++;
+
+    query += ` WHERE id = $${paramCount} RETURNING *`;
+    values.push(businessId);
+
+    const result = await pool.query(query, values);
+    if (!result.rows.length) {
+      return res.status(404).json({ message: 'Business not found' });
+    }
+
+    res.json({ message: 'Settings updated', business: result.rows[0] });
+  } catch (err) {
+    console.error('updateSettings:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const createStore = async (req, res) => {
+  try {
+    const businessId = getScopedBusinessId(req);
+    if (!businessId) return res.status(400).json({ message: 'Business context required' });
+
+    const { name, store_code, address, phone, email } = req.body;
+    if (!name || !store_code) return res.status(400).json({ message: 'name and store_code are required' });
+
+    const result = await pool.query(
+      `INSERT INTO src_stores (business_id, name, store_code, address, phone, email, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+       RETURNING *`,
+      [businessId, name, store_code, address || null, phone || null, email || null]
+    );
+
+    res.json({ store: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const updateStore = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const businessId = getScopedBusinessId(req);
+    if (!businessId) return res.status(400).json({ message: 'Business context required' });
+
+    const { name, store_code, address, phone, email, is_active } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (store_code !== undefined) updates.store_code = store_code;
+    if (address !== undefined) updates.address = address;
+    if (phone !== undefined) updates.phone = phone;
+    if (email !== undefined) updates.email = email;
+    if (is_active !== undefined) updates.is_active = is_active;
+
+    if (!Object.keys(updates).length) {
+      const existing = await pool.query(
+        `SELECT * FROM src_stores WHERE id = $1 AND business_id = $2`,
+        [id, businessId]
+      );
+      if (!existing.rows.length) return res.status(404).json({ message: 'Store not found' });
+      return res.json({ store: existing.rows[0] });
+    }
+
+    const setClauses = Object.keys(updates).map((key, idx) => `${key} = $${idx + 3}`).join(', ');
+    const values = [businessId, id, ...Object.values(updates)];
+
+    const result = await pool.query(
+      `UPDATE src_stores SET ${setClauses} WHERE id = $2 AND business_id = $1 RETURNING *`,
+      values
+    );
+
+    if (!result.rows.length) return res.status(404).json({ message: 'Store not found' });
+    res.json({ store: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const deleteStore = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const businessId = getScopedBusinessId(req);
+    if (!businessId) return res.status(400).json({ message: 'Business context required' });
+
+    const result = await pool.query(
+      `DELETE FROM src_stores WHERE id = $1 AND business_id = $2 RETURNING *`,
+      [id, businessId]
+    );
+
+    if (!result.rows.length) return res.status(404).json({ message: 'Store not found' });
+
+    res.json({ message: 'Store deleted', store: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getDashboard,
   getModules,
@@ -1098,10 +1257,14 @@ module.exports = {
   listAuditLogs,
   exportAuditLogs,
   getSettings,
+  updateSettings,
   getTenantInfo,
   listBusinesses,
   listStores,
   listWarehouses,
+  createStore,
+  updateStore,
+  deleteStore,
   createWarehouseTransfer,
   recordDamage,
   recordStockCount,

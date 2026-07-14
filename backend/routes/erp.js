@@ -29,9 +29,15 @@ router.get('/audit-logs', ...auditGuard, erp.getAuditLogs);
 router.get('/audit-logs/paginated', ...auditGuard, erp.listAuditLogs);
 router.get('/audit-logs/export',    ...auditGuard, erp.exportAuditLogs);
 router.get('/settings', ...settingsGuard, erp.getSettings);
+router.put('/settings', ...settingsGuard, erp.updateSettings);
+
+// Store Management
+router.post('/stores', ...settingsGuard, erp.createStore);
+router.put('/stores/:id', ...settingsGuard, erp.updateStore);
+router.delete('/stores/:id', ...settingsGuard, erp.deleteStore);
 
 router.get('/businesses', ...superAdminGuard, erp.listBusinesses);
-router.get('/stores', ...superAdminGuard, erp.listStores);
+router.get('/stores', ...settingsGuard, erp.listStores);
 router.get('/warehouses', ...superAdminGuard, erp.listWarehouses);
 
 router.get('/domains', ...superAdminGuard, domainCtrl.listDomains);

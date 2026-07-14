@@ -29,9 +29,10 @@ export default function AdminSettings() {
   const [upiIds, setUpiIds]     = useState('');
   const [printers, setPrinters] = useState({ default_printer: 'a4' });
 
-  useEffect(() => {
+  const loadSettings = async () => {
     setLoading(true);
-    api.get('/erp/settings').then(res => {
+    try {
+      const res = await api.get('/erp/settings');
       const d = res.data;
       const bp = d.business_profile || {};
       const bs = d.business_settings || {};
@@ -48,14 +49,22 @@ export default function AdminSettings() {
       setUpiIds((bs.upi_ids || []).join('\n'));
       setPrinters({ default_printer: bs.default_printer || 'a4' });
       setSettings(d);
-    }).catch(() => toast.error('Failed to load settings'))
-      .finally(() => setLoading(false));
+    } catch (err) {
+      toast.error('Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSettings();
   }, []);
 
   const saveProfile = async () => {
     setSaving(true);
     try {
-      await api.put('/erp/settings/business', { business_profile: profile });
+      await api.put('/erp/settings', { business_profile: profile });
+      await loadSettings();
       toast.success('Business profile saved');
     } catch (err) { toast.error(err.response?.data?.message || 'Save failed'); }
     finally { setSaving(false); }
@@ -64,7 +73,8 @@ export default function AdminSettings() {
   const saveLoyalty = async () => {
     setSaving(true);
     try {
-      await api.put('/erp/settings/business', { loyalty_rate: Number(loyalty.points_per_rupee), min_redemption: Number(loyalty.min_redemption) });
+      await api.put('/erp/settings', { loyalty_rate: Number(loyalty.points_per_rupee), min_redemption: Number(loyalty.min_redemption) });
+      await loadSettings();
       toast.success('Loyalty settings saved');
     } catch (err) { toast.error(err.response?.data?.message || 'Save failed'); }
     finally { setSaving(false); }
@@ -74,7 +84,8 @@ export default function AdminSettings() {
     setSaving(true);
     try {
       const ids = upiIds.split('\n').map(s => s.trim()).filter(Boolean);
-      await api.put('/erp/settings/business', { upi_ids: ids });
+      await api.put('/erp/settings', { upi_ids: ids });
+      await loadSettings();
       toast.success('UPI IDs saved');
     } catch (err) { toast.error(err.response?.data?.message || 'Save failed'); }
     finally { setSaving(false); }
@@ -83,7 +94,8 @@ export default function AdminSettings() {
   const savePrinters = async () => {
     setSaving(true);
     try {
-      await api.put('/erp/settings/business', { default_printer: printers.default_printer });
+      await api.put('/erp/settings', { default_printer: printers.default_printer });
+      await loadSettings();
       toast.success('Printer settings saved');
     } catch (err) { toast.error(err.response?.data?.message || 'Save failed'); }
     finally { setSaving(false); }

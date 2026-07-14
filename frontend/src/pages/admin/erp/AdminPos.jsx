@@ -44,6 +44,13 @@ export default function AdminPos() {
   const [isSplitMode, setIsSplitMode]   = useState(false);
   const [amountEntered, setAmountEntered] = useState('');
   const [overview, setOverview]         = useState(null);
+  const [customerId, setCustomerId]     = useState(null);
+  const [customerName, setCustomerName] = useState('Walk-in Customer');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [showCustomerMenu, setShowCustomerMenu] = useState(false);
+  const [customerQuery, setCustomerQuery] = useState('');
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '' });
   const [holds, setHolds]               = useState([]);
   const [showHolds, setShowHolds]       = useState(false);
   const [completedSale, setCompletedSale] = useState(null);
@@ -88,6 +95,49 @@ export default function AdminPos() {
     setSearch(val);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => doSearch(val), 400);
+  };
+
+  const resetCustomer = () => {
+    setCustomerId(null);
+    setCustomerName('Walk-in Customer');
+    setCustomerPhone('');
+    setCustomerQuery('');
+  };
+
+  const selectCustomer = (customer) => {
+    setCustomerId(customer.id);
+    setCustomerName(customer.name || 'Walk-in Customer');
+    setCustomerPhone(customer.phone || '');
+    setShowCustomerMenu(false);
+  };
+
+  const visibleCustomers = (overview?.customers || []).filter((customer) => {
+    const query = customerQuery.trim().toLowerCase();
+    if (!query) return true;
+    return [customer.name, customer.phone, customer.customer_code]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(query));
+  });
+
+  const createCustomer = async () => {
+    if (!newCustomer.name.trim()) return toast.error('Customer name is required');
+    setSaving(true);
+    try {
+      const res = await api.post('/erp/customers', newCustomer);
+      const created = res.data;
+      setOverview((prev) => ({
+        ...prev,
+        customers: [created, ...(prev?.customers || [])].slice(0, 12),
+      }));
+      selectCustomer(created);
+      setCustomerModalOpen(false);
+      setNewCustomer({ name: '', phone: '', email: '' });
+      toast.success('Customer created');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create customer');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSearchKeyDown = (e) => {
@@ -144,11 +194,12 @@ export default function AdminPos() {
     try {
       const res = await api.post('/erp/pos/hold', {
         cart_payload: cart,
-        customer_name: 'Walk-in Customer',
+        customer_name: customerName,
         total: grandFinal,
       });
       toast.success(`Bill held: ${res.data.hold_code}`);
       setCart([]);
+      resetCustomer();
       loadOverview();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to hold bill');
@@ -172,6 +223,8 @@ export default function AdminPos() {
       const res = await api.post(`/erp/pos/holds/${holdCode}/resume`);
       const payload = res.data.cart_payload;
       if (Array.isArray(payload)) setCart(payload);
+      setCustomerName(res.data.customer_name || 'Walk-in Customer');
+      setCustomerId(null);
       setShowHolds(false);
       toast.success('Bill resumed');
     } catch (err) {
@@ -223,6 +276,7 @@ export default function AdminPos() {
         })),
         payment_method: paymentMethod,
         split_payment: isSplitMode ? splitPayments : [],
+        customer_id: customerId || null,
         discount_amount: discountTotal,
         tax_amount: taxTotal,
         round_off: roundOff,
@@ -331,13 +385,97 @@ export default function AdminPos() {
       )}
 
       {/* ══════════════ MAIN LAYOUT ══════════════ */}
+      {customerModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 250, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 18, padding: 24, width: 420, maxWidth: 'calc(100% - 32px)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>Create new customer</div>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>Add a customer to the POS billing flow.</div>
+              </div>
+              <button onClick={() => setCustomerModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={18} /></button>
+            </div>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {['name', 'phone', 'email'].map((field) => (
+                <div key={field}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 5, textTransform: 'capitalize' }}>{field}</label>
+                  <input
+                    value={newCustomer[field]}
+                    onChange={(e) => setNewCustomer((prev) => ({ ...prev, [field]: e.target.value }))}
+                    style={inp}
+                    placeholder={field === 'phone' ? 'Mobile number' : field === 'email' ? 'Email address' : 'Full name'}
+                  />
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <button onClick={() => setCustomerModalOpen(false)} style={{ padding: '10px 16px', borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', cursor: 'pointer' }}>Cancel</button>
+                <button onClick={createCustomer} disabled={saving} style={{ padding: '10px 16px', borderRadius: 10, border: 'none', background: '#f97316', color: '#fff', cursor: 'pointer' }}>
+                  {saving ? 'Saving…' : 'Create customer'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, alignItems: 'start' }}>
 
         {/* ════════ LEFT PANEL ════════ */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* ── Search ── */}
-          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: 16, display: 'grid', gap: 14 }}>
+            <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Customer</div>
+                  <div style={{ marginTop: 4, fontSize: 15, fontWeight: 700, color: '#111827' }}>{customerName}</div>
+                  {customerPhone && <div style={{ fontSize: 12, color: '#6b7280' }}>{customerPhone}</div>}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <button onClick={() => setShowCustomerMenu((prev) => !prev)}
+                    style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#374151', cursor: 'pointer', fontSize: 13 }}>
+                    {customerId ? 'Change customer' : 'Select customer'}
+                  </button>
+                  <button onClick={() => { setCustomerModalOpen(true); setShowCustomerMenu(false); }}
+                    style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: '#f97316', color: '#fff', cursor: 'pointer', fontSize: 13 }}>
+                    New customer
+                  </button>
+                  {customerId && (
+                    <button onClick={resetCustomer}
+                      style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid #e5e7eb', background: '#fff', color: '#ef4444', cursor: 'pointer', fontSize: 13 }}>
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {showCustomerMenu && (
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, background: '#fff', padding: 12 }}>
+                  <input
+                    value={customerQuery}
+                    onChange={(e) => setCustomerQuery(e.target.value)}
+                    placeholder="Search recent customers..."
+                    style={{ ...inp, marginBottom: 10 }}
+                  />
+                  {visibleCustomers.length === 0 ? (
+                    <div style={{ fontSize: 13, color: '#9ca3af', padding: 12 }}>No matching customers.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
+                      {visibleCustomers.map((customer) => (
+                        <button key={customer.id} onClick={() => selectCustomer(customer)}
+                          style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: '1px solid #f3f4f6', background: '#f9fafb', cursor: 'pointer', textAlign: 'left' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, color: '#111827' }}>{customer.name}</div>
+                            <div style={{ fontSize: 11, color: '#6b7280' }}>{customer.phone || customer.email || 'No phone/email'}</div>
+                          </div>
+                          <div style={{ fontSize: 11, color: '#4b5563' }}>{customer.customer_code || 'NA'}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <div style={{ position: 'relative' }}>
               <ScanLine size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
               <input

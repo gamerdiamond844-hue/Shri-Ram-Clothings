@@ -70,6 +70,7 @@ const AdminAuditLogs      = lazy(() => import('./erp/AdminAuditLogs'));
 const BarcodeEngine       = lazy(() => import('./erp/BarcodeEngine'));
 const AdminSalesOrders    = lazy(() => import('./erp/AdminSalesOrders'));
 const AdminSettings       = lazy(() => import('./erp/AdminSettings'));
+const AdminStoreManagement = lazy(() => import('./erp/AdminStoreManagement'));
 const AdminRoleManagement = lazy(() => import('./erp/AdminRoleManagement'));
 const AdminSuperAdmin     = lazy(() => import('./erp/AdminSuperAdmin'));
 
@@ -214,6 +215,8 @@ export default function AdminDashboard() {
       case 'settings':
       case 'business-settings':
         return <AdminSettings />;
+      case 'store-management':
+        return <AdminStoreManagement />;
       case 'role-management':
         return <AdminRoleManagement />;
       case 'super-admin':
