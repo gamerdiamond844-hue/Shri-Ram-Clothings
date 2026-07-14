@@ -690,6 +690,10 @@ const initDB = async () => {
       ALTER TABLE src_users ADD COLUMN IF NOT EXISTS google_id VARCHAR(200);
       ALTER TABLE src_users ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(20) DEFAULT 'local';
       ALTER TABLE src_users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+      ALTER TABLE src_users ADD COLUMN IF NOT EXISTS business_id INTEGER REFERENCES src_businesses(id) ON DELETE SET NULL;
+      ALTER TABLE src_users ADD COLUMN IF NOT EXISTS store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL;
+      ALTER TABLE src_users ADD COLUMN IF NOT EXISTS warehouse_id INTEGER REFERENCES src_warehouses(id) ON DELETE SET NULL;
+      ALTER TABLE src_users ADD COLUMN IF NOT EXISTS employee_code VARCHAR(30);
 
       ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS tracking_id VARCHAR(100);
       ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS courier_name VARCHAR(100);
@@ -914,15 +918,13 @@ const initDB = async () => {
         );
     `);
 
-    // Link admin user to default business
+    // Link admin user to default business (runs after column migration)
     await client.query(`
-      UPDATE src_users u
-      SET business_id = b.id
-      FROM src_businesses b
-      WHERE b.slug = 'shriramclothings'
-        AND u.email = $1
-        AND u.business_id IS NULL;
-    `, [defaultAdminEmail]);
+      UPDATE src_users
+      SET business_id = (SELECT id FROM src_businesses WHERE slug = 'shriramclothings' LIMIT 1)
+      WHERE email = $1
+        AND (business_id IS NULL OR business_id = 0)
+    `, [defaultAdminEmail]).catch(() => {});
 
     console.log('✅ Shri Ram Clothings DB initialized');
   } finally {
