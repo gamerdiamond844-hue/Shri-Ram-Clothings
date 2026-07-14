@@ -15,6 +15,41 @@ const computeEan13 = (digits12) => {
   return d.join('') + check;
 };
 
+const ensureInventoryNotesColumn = async (client) => {
+  try {
+    await client.query(`ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS notes TEXT`);
+  } catch (err) {
+    console.error('Failed to ensure inventory notes column:', err.message);
+  }
+};
+
+const insertInventoryItem = async (client, {
+  businessId, title, sku, barcode, internal_product_id, category,
+  purchase_price, selling_price, mrp, current_stock, reorder_level,
+  gst_rate, hsn_code, variant_size, variant_color, warehouse_id,
+  supplier_id, notes,
+}) => {
+  const insertRes = await client.query(
+    `INSERT INTO src_erp_inventory_items
+       (business_id, title, sku, barcode, internal_product_id, category,
+        purchase_price, selling_price, mrp, current_stock, reorder_level,
+        gst_rate, hsn_code, variant_size, variant_color, warehouse_id,
+        supplier_id, notes, status, created_at, updated_at)
+     VALUES
+       ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'active',NOW(),NOW())
+     RETURNING *`,
+    [
+      businessId, title, sku, barcode, internal_product_id, category || null,
+      purchase_price || null, selling_price || null, mrp || null,
+      current_stock, reorder_level,
+      gst_rate || null, hsn_code || null,
+      variant_size || null, variant_color || null,
+      warehouse_id || null, supplier_id || null, notes || null,
+    ]
+  );
+  return insertRes.rows[0];
+};
+
 // ── Auto-generate SKU ─────────────────────────────────────────────────────────
 const generateSku = async (client, businessId) => {
   const year = new Date().getFullYear();
@@ -146,25 +181,108 @@ const createItem = async (req, res) => {
     // Auto-generate internal_product_id
     const internal_product_id = `IPI-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
-    const insertRes = await client.query(
-      `INSERT INTO src_erp_inventory_items
-         (business_id, title, sku, barcode, internal_product_id, category,
-          purchase_price, selling_price, mrp, current_stock, reorder_level,
-          gst_rate, hsn_code, variant_size, variant_color, warehouse_id,
-          supplier_id, notes, status, created_at, updated_at)
-       VALUES
-         ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'active',NOW(),NOW())
-       RETURNING *`,
-      [
-        businessId, title, sku, barcode, internal_product_id, category || null,
-        purchase_price || null, selling_price || null, mrp || null,
-        current_stock, reorder_level,
-        gst_rate || null, hsn_code || null,
-        variant_size || null, variant_color || null,
-        warehouse_id || null, supplier_id || null, notes || null,
-      ]
-    );
-    const item = insertRes.rows[0];
+    const doInsert = async (c) => {
+      const insertRes = await c.query(
+        `INSERT INTO src_erp_inventory_items
+           (business_id, title, sku, barcode, internal_product_id, category,
+            purchase_price, selling_price, mrp, current_stock, reorder_level,
+            gst_rate, hsn_code, variant_size, variant_color, warehouse_id,
+            supplier_id, notes, status, created_at, updated_at)
+         VALUES
+           ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'active',NOW(),NOW())
+         RETURNING *`,
+        [
+          businessId, title, sku, barcode, internal_product_id, category || null,
+          purchase_price || null, selling_price || null, mrp || null,
+          current_stock, reorder_level,
+          gst_rate || null, hsn_code || null,
+          variant_size || null, variant_color || null,
+          warehouse_id || null, supplier_id || null, notes || null,
+        ]
+      );
+      return insertRes.rows[0];
+    };
+
+    let item;
+    try {
+      item = await doInsert(client);
+    } catch (err) {
+      // Handle missing-column errors (undefined_column = Postgres error code 42703)
+      if (err && err.code === '42703') {
+        try {
+          await client.query('ROLLBACK').catch(() => {});
+
+          // Try to infer the missing column name from the error message
+          const m = (err.message || '').match(/column "([^"]+)"/i);
+          const missingCol = m ? m[1] : null;
+
+          // Basic sanitization
+          if (!missingCol || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(missingCol)) {
+            console.error('Could not determine missing column from error:', err.message);
+            return res.status(500).json({ message: 'Failed to create inventory item' });
+          }
+
+          // Map common inventory column names to appropriate SQL types
+          const typeMap = {
+            notes: 'TEXT',
+            internal_product_id: 'VARCHAR(80)',
+            hsn_code: 'VARCHAR(30)',
+            gst_rate: 'DECIMAL(5,2) DEFAULT 0',
+            variant_color: 'VARCHAR(60)',
+            variant_size: 'VARCHAR(60)',
+            purchase_price: 'DECIMAL(12,2) DEFAULT 0',
+            selling_price: 'DECIMAL(12,2) DEFAULT 0',
+            mrp: 'DECIMAL(12,2) DEFAULT 0',
+            reorder_level: 'INTEGER DEFAULT 0',
+            current_stock: 'INTEGER DEFAULT 0',
+            unit_weight: 'DECIMAL(10,2) DEFAULT 0',
+            rack_code: 'VARCHAR(50)',
+            shelf_code: 'VARCHAR(50)',
+            batch_no: 'VARCHAR(80)',
+            serial_no: 'VARCHAR(120)',
+            expiry_date: 'DATE',
+            manufacturing_date: 'DATE',
+            image_url: 'TEXT'
+          };
+
+          const colType = typeMap[missingCol] || 'TEXT';
+
+          // Apply the migration for the missing column
+          const alterSql = `ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS ${missingCol} ${colType}`;
+          await pool.query(alterSql);
+
+          // retry insert in a fresh transaction
+          const client2 = await pool.connect();
+          try {
+            await client2.query('BEGIN');
+            item = await doInsert(client2);
+
+            if (Number(current_stock) > 0) {
+              await client2.query(
+                `INSERT INTO src_erp_inventory_movements
+                   (business_id, inventory_item_id, movement_type, quantity, balance_after, notes, created_at)
+                 VALUES ($1,$2,'opening',$3,$4,'Opening stock',NOW())`,
+                [businessId, item.id, current_stock, current_stock]
+              );
+            }
+
+            await logAudit(client2, { adminId: req.user?.id, action: 'inventory_item.create', targetType: 'inventory_item', targetId: item.id, details: sku });
+            await client2.query('COMMIT');
+            return res.status(201).json(item);
+          } catch (e2) {
+            await client2.query('ROLLBACK').catch(() => {});
+            console.error('createItem retry failed:', e2.message);
+            return res.status(500).json({ message: 'Failed to create inventory item' });
+          } finally {
+            client2.release();
+          }
+        } catch (mErr) {
+          console.error('auto-migration failed:', mErr.message);
+          return res.status(500).json({ message: 'Failed to create inventory item' });
+        }
+      }
+      throw err; // rethrow for outer catch
+    }
 
     // Insert opening stock movement if current_stock > 0
     if (Number(current_stock) > 0) {
