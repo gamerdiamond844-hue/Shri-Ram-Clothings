@@ -713,6 +713,19 @@ const initDB = async () => {
 
       ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS free_delivery_applied BOOLEAN DEFAULT FALSE;
       ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS delivery_charge DECIMAL(10,2) DEFAULT 0;
+      ALTER TABLE src_orders ADD COLUMN IF NOT EXISTS business_id INTEGER REFERENCES src_businesses(id) ON DELETE SET NULL;
+      ALTER TABLE src_order_items ADD COLUMN IF NOT EXISTS business_id INTEGER;
+      CREATE TABLE IF NOT EXISTS src_payments (
+        id SERIAL PRIMARY KEY,
+        order_id INTEGER REFERENCES src_orders(id) ON DELETE CASCADE,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE SET NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        payment_method VARCHAR(100),
+        provider_response JSONB,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_src_orders_business_id ON src_orders(business_id);
+      CREATE INDEX IF NOT EXISTS idx_src_payments_business_id ON src_payments(business_id);
 
       ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS rating_label VARCHAR(50) NOT NULL DEFAULT 'Excellent';
       ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS suggestion VARCHAR(150);

@@ -59,6 +59,7 @@ export const ERP_NAV_GROUPS = [
 export const ADMIN_ROUTE_ALIASES = {
   overview: 'dashboard',
   orders: 'sales',
+  'sales-orders': 'sales',
   users: 'user-management',
 };
 

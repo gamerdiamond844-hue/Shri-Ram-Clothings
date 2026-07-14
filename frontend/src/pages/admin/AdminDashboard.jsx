@@ -41,7 +41,6 @@ import {
 import api from '../../utils/api';
 import AdminOverview from './AdminOverview';
 import AdminProducts from './AdminProducts';
-import AdminOrders from './AdminOrders';
 import AdminDelivery from './AdminDelivery';
 import AdminCoupons from './AdminCoupons';
 import AdminCategories from './AdminCategories';
@@ -208,6 +207,8 @@ export default function AdminDashboard() {
         return <AdminAuditLogs />;
       case 'barcode-engine':
         return <BarcodeEngine />;
+      case 'sales':
+        return <AdminSalesOrders />;
       case 'sales-orders':
         return <AdminSalesOrders />;
       case 'settings':
@@ -221,8 +222,6 @@ export default function AdminDashboard() {
         return <AdminHomepage />;
       case 'products':
         return <AdminProducts />;
-      case 'sales':
-        return <AdminOrders />;
       case 'delivery':
         return <AdminDelivery />;
       case 'cloud':
