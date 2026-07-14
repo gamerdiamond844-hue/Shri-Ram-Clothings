@@ -462,6 +462,8 @@ const initDB = async () => {
         loyalty_points INTEGER DEFAULT 0,
         store_credit DECIMAL(12,2) DEFAULT 0,
         outstanding_amount DECIMAL(12,2) DEFAULT 0,
+        membership VARCHAR(30) DEFAULT 'regular',
+        notes TEXT,
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
@@ -605,8 +607,8 @@ const initDB = async () => {
         employee_id INTEGER REFERENCES src_users(id) ON DELETE CASCADE,
         store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
         attendance_date DATE NOT NULL DEFAULT CURRENT_DATE,
-        check_in TIMESTAMP,
-        check_out TIMESTAMP,
+        check_in TIME,
+        check_out TIME,
         status VARCHAR(20) DEFAULT 'present' CHECK (status IN ('present','absent','half_day','leave')),
         notes TEXT,
         created_at TIMESTAMP DEFAULT NOW(),
@@ -732,6 +734,50 @@ const initDB = async () => {
           'business_owner','store_admin','store_manager',
           'cashier','warehouse_manager','accountant','employee'
         ))
+    `).catch(() => {});
+
+    // ── Migrate ERP customer table columns ────────────────────────────────────
+    await client.query(`
+      ALTER TABLE src_erp_customers ADD COLUMN IF NOT EXISTS gst_number VARCHAR(50);
+      ALTER TABLE src_erp_customers ADD COLUMN IF NOT EXISTS address TEXT;
+      ALTER TABLE src_erp_customers ADD COLUMN IF NOT EXISTS city VARCHAR(100);
+      ALTER TABLE src_erp_customers ADD COLUMN IF NOT EXISTS state VARCHAR(100);
+      ALTER TABLE src_erp_customers ADD COLUMN IF NOT EXISTS pincode VARCHAR(20);
+      ALTER TABLE src_erp_customers ADD COLUMN IF NOT EXISTS membership VARCHAR(30) DEFAULT 'regular';
+      ALTER TABLE src_erp_customers ADD COLUMN IF NOT EXISTS notes TEXT;
+    `).catch(() => {});
+
+    // ── Fix attendance check_in/check_out to store as TIME not TIMESTAMP ───────
+    await client.query(`
+      ALTER TABLE src_erp_attendance ALTER COLUMN check_in TYPE TIME USING check_in::time;
+      ALTER TABLE src_erp_attendance ALTER COLUMN check_out TYPE TIME USING check_out::time;
+    `).catch(() => {});
+
+    // ── Ensure inventory items has internal_product_id ────────────────────────
+    await client.query(`
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS internal_product_id VARCHAR(80);
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS hsn_code VARCHAR(30);
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS gst_rate DECIMAL(5,2) DEFAULT 0;
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS variant_color VARCHAR(60);
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS variant_size VARCHAR(60);
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS rack_code VARCHAR(50);
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS shelf_code VARCHAR(50);
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS expiry_date DATE;
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS batch_no VARCHAR(80);
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS serial_no VARCHAR(120);
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS image_url TEXT;
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS unit_weight DECIMAL(10,2) DEFAULT 0;
+    `).catch(() => {});
+
+    // ── Ensure ERP sales has all required columns ─────────────────────────────
+    await client.query(`
+      ALTER TABLE src_erp_sales ADD COLUMN IF NOT EXISTS split_payment JSONB DEFAULT '[]'::jsonb;
+      ALTER TABLE src_erp_sales ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(12,2) DEFAULT 0;
+      ALTER TABLE src_erp_sales ADD COLUMN IF NOT EXISTS coupon_code TEXT;
+      ALTER TABLE src_erp_sales ADD COLUMN IF NOT EXISTS notes TEXT;
+      ALTER TABLE src_erp_sales ADD COLUMN IF NOT EXISTS cashier_id INTEGER REFERENCES src_users(id) ON DELETE SET NULL;
+      ALTER TABLE src_erp_sales ADD COLUMN IF NOT EXISTS round_off DECIMAL(12,2) DEFAULT 0;
+      ALTER TABLE src_erp_sales ADD COLUMN IF NOT EXISTS tax_amount DECIMAL(12,2) DEFAULT 0;
     `).catch(() => {});
 
     // Tracking logs table

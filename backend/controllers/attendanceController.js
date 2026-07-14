@@ -4,12 +4,15 @@ const { pool } = require('../config/db');
 const XLSX = require('xlsx');
 
 const getScopedBusinessId = (req) => req.tenant?.business_id || req.user?.business_id || null;
+const isAdminRole = (req) => req.user?.role === 'super_admin' || req.user?.role === 'admin';
 
 // GET /api/erp/attendance?year=2025&month=1
 const getMonthlyGrid = async (req, res) => {
   try {
     const businessId = getScopedBusinessId(req);
-    if (!businessId) return res.status(400).json({ message: 'Business context required' });
+    if (!businessId) {
+      if (!isAdminRole(req)) return res.status(400).json({ message: 'Business context required' });
+    }
 
     const now = new Date();
     const year  = parseInt(req.query.year)  || now.getFullYear();
@@ -19,23 +22,38 @@ const getMonthlyGrid = async (req, res) => {
     const lastDay  = new Date(year, month, 0);
     const lastDayStr = `${year}-${String(month).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
 
-    // Get employees for this business
-    const empRes = await pool.query(
-      `SELECT id, name, role, employee_code FROM src_users
-       WHERE business_id = $1 AND role NOT IN ('user','super_admin')
-       ORDER BY name ASC`,
-      [businessId]
-    );
+    // Get employees for this business (or all if admin with no business filter)
+    const empRes = businessId
+      ? await pool.query(
+          `SELECT id, name, role, employee_code FROM src_users
+           WHERE business_id = $1 AND role NOT IN ('user','super_admin')
+           ORDER BY name ASC`,
+          [businessId]
+        )
+      : await pool.query(
+          `SELECT id, name, role, employee_code FROM src_users
+           WHERE 1=1 AND role NOT IN ('user','super_admin')
+           ORDER BY name ASC`
+        );
 
     // Get attendance records for the month
-    const attRes = await pool.query(
-      `SELECT employee_id, attendance_date, status, check_in, check_out, notes
-       FROM src_erp_attendance
-       WHERE business_id = $1
-         AND attendance_date BETWEEN $2 AND $3
-       ORDER BY attendance_date ASC`,
-      [businessId, firstDay, lastDayStr]
-    );
+    const attRes = businessId
+      ? await pool.query(
+          `SELECT employee_id, attendance_date, status, check_in, check_out, notes
+           FROM src_erp_attendance
+           WHERE business_id = $1
+             AND attendance_date BETWEEN $2 AND $3
+           ORDER BY attendance_date ASC`,
+          [businessId, firstDay, lastDayStr]
+        )
+      : await pool.query(
+          `SELECT employee_id, attendance_date, status, check_in, check_out, notes
+           FROM src_erp_attendance
+           WHERE 1=1
+             AND attendance_date BETWEEN $1 AND $2
+           ORDER BY attendance_date ASC`,
+          [firstDay, lastDayStr]
+        );
 
     // Build a map: employeeId -> { date -> record }
     const attMap = {};
@@ -66,10 +84,21 @@ const getMonthlyGrid = async (req, res) => {
 const markAttendance = async (req, res) => {
   try {
     const businessId = getScopedBusinessId(req);
-    if (!businessId) return res.status(400).json({ message: 'Business context required' });
+    if (!businessId) {
+      if (!isAdminRole(req)) return res.status(400).json({ message: 'Business context required' });
+    }
 
     const { employee_id, attendance_date, status, check_in, check_out, notes } = req.body;
     if (!employee_id || !attendance_date) return res.status(400).json({ message: 'employee_id and attendance_date are required' });
+
+    // Normalize check_in/check_out — accept "HH:MM" or full timestamp
+    const normalizeTime = (val) => {
+      if (!val) return null;
+      if (/^\d{1,2}:\d{2}$/.test(val)) return `${val}:00`;
+      if (/^\d{1,2}:\d{2}:\d{2}$/.test(val)) return val;
+      if (val.includes('T')) return val.split('T')[1].slice(0, 8);
+      return val;
+    };
 
     const result = await pool.query(
       `INSERT INTO src_erp_attendance (business_id, employee_id, attendance_date, status, check_in, check_out, notes)
@@ -78,7 +107,7 @@ const markAttendance = async (req, res) => {
        DO UPDATE SET status=$4, check_in=$5, check_out=$6, notes=$7
        RETURNING *`,
       [businessId, employee_id, attendance_date, status || 'present',
-       check_in || null, check_out || null, notes || null]
+       normalizeTime(check_in), normalizeTime(check_out), notes || null]
     );
 
     return res.json(result.rows[0]);
