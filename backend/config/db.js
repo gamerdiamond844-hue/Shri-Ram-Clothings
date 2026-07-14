@@ -517,6 +517,7 @@ const initDB = async () => {
         expiry_date DATE,
         manufacturing_date DATE,
         image_url TEXT,
+        notes TEXT,
         status VARCHAR(30) DEFAULT 'active' CHECK (status IN ('active','inactive','archived')),
         created_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT NOW(),
@@ -745,6 +746,7 @@ const initDB = async () => {
       ALTER TABLE src_erp_customers ADD COLUMN IF NOT EXISTS pincode VARCHAR(20);
       ALTER TABLE src_erp_customers ADD COLUMN IF NOT EXISTS membership VARCHAR(30) DEFAULT 'regular';
       ALTER TABLE src_erp_customers ADD COLUMN IF NOT EXISTS notes TEXT;
+      ALTER TABLE src_erp_inventory_items ADD COLUMN IF NOT EXISTS notes TEXT;
     `).catch(() => {});
 
     // ── Fix attendance check_in/check_out to store as TIME not TIMESTAMP ───────
