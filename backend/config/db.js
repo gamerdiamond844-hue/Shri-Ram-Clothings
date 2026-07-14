@@ -718,6 +718,18 @@ const initDB = async () => {
       ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
     `).catch(() => {});
 
+    // ── Migrate src_users role CHECK constraint to include all ERP roles ──────
+    // Drop old constraint and recreate with full role list (idempotent via catch)
+    await client.query(`ALTER TABLE src_users DROP CONSTRAINT IF EXISTS src_users_role_check`).catch(() => {});
+    await client.query(`
+      ALTER TABLE src_users ADD CONSTRAINT src_users_role_check
+        CHECK (role IN (
+          'user','seller','admin','super_admin',
+          'business_owner','store_admin','store_manager',
+          'cashier','warehouse_manager','accountant','employee'
+        ))
+    `).catch(() => {});
+
     // Tracking logs table
     await client.query(`
       CREATE TABLE IF NOT EXISTS src_tracking_logs (
@@ -895,11 +907,12 @@ const initDB = async () => {
     await client.query(`
       INSERT INTO src_warehouses (business_id, name, is_active)
       SELECT b.id, 'Main Warehouse', TRUE
-      FROM src_businesses b WHERE b.slug = 'shriramclothings'
-      WHERE NOT EXISTS (
-        SELECT 1 FROM src_warehouses w JOIN src_businesses b2 ON b2.id = w.business_id WHERE b2.slug = 'shriramclothings'
-      );
-    `).catch(() => {}); // ignore if already exists
+      FROM src_businesses b
+      WHERE b.slug = 'shriramclothings'
+        AND NOT EXISTS (
+          SELECT 1 FROM src_warehouses w WHERE w.business_id = b.id
+        );
+    `);
 
     // Link admin user to default business
     await client.query(`
