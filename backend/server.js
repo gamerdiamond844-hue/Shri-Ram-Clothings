@@ -49,6 +49,7 @@ app.use('/api/erp', require('./routes/erp'));
 app.use('/api/erp/pos', require('./routes/pos'));
 app.use('/api/erp/inventory', require('./routes/inventory'));
 app.use('/api/erp/customers', require('./routes/customers'));
+app.use('/api/erp/brands', require('./routes/brands'));
 app.use('/api/erp/suppliers', require('./routes/suppliers'));
 app.use('/api/erp/purchases', require('./routes/purchases'));
 app.use('/api/erp/returns', require('./routes/returns'));

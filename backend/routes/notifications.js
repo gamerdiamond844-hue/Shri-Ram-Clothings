@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { auth, requireRole } = require('../middleware/auth');
+const { auth, requirePermission } = require('../middleware/auth');
 const n = require('../controllers/notificationController');
 
 const optionalAuth = (req, res, next) => {
@@ -10,7 +10,7 @@ const optionalAuth = (req, res, next) => {
   next();
 };
 
-const guard = [auth, requireRole('admin')];
+const guard = [auth, requirePermission('erp.manage_notifications')];
 
 // Public
 router.get('/vapid-key',    n.getVapidKey);

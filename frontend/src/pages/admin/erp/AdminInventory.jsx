@@ -99,7 +99,7 @@ function PrintLabel({ item }) {
 
 // ── Blank form state ──────────────────────────────────────────────────────────
 const blankForm = {
-  title: '', category: '', brand: '', supplier_id: '', sku: '', barcode: '',
+  title: '', category: '', brand_id: '', supplier_id: '', sku: '', barcode: '',
   hsn_code: '', gst_rate: '', variant_size: '', variant_color: '',
   purchase_price: '', selling_price: '', mrp: '', reorder_level: '',
   warehouse_id: '', rack_code: '', shelf_code: '', expiry_date: '',
@@ -119,9 +119,10 @@ export default function AdminInventory() {
   const [search, setSearch] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
 
-  // suppliers/warehouses for dropdowns
+  // suppliers/warehouses/brands for dropdowns
   const [suppliers, setSuppliers] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [brands, setBrands] = useState([]);
 
   // slide-in form
   const [showForm, setShowForm] = useState(false);
@@ -175,6 +176,7 @@ export default function AdminInventory() {
   useEffect(() => {
     api.get('/erp/suppliers').then(r => setSuppliers(r.data.suppliers || [])).catch(() => {});
     api.get('/erp/warehouses').then(r => setWarehouses(r.data.warehouses || [])).catch(() => {});
+    api.get('/erp/brands?active=true').then(r => setBrands(r.data.brands || [])).catch(() => {});
   }, []);
 
   // ── Open add / edit form ────────────────────────────────────────────────────
@@ -189,7 +191,7 @@ export default function AdminInventory() {
     setForm({
       title: item.title || '',
       category: item.category || '',
-      brand: item.brand || '',
+      brand_id: item.brand_id || '',
       supplier_id: item.supplier_id || '',
       sku: item.sku || '',
       barcode: item.barcode || '',
@@ -227,7 +229,7 @@ export default function AdminInventory() {
         if (payload[k] === '') payload[k] = null;
         else if (payload[k] !== null) payload[k] = Number(payload[k]);
       });
-      ['supplier_id','warehouse_id'].forEach(k => {
+      ['supplier_id','warehouse_id','brand_id'].forEach(k => {
         if (payload[k] === '') payload[k] = null;
       });
       if (payload.expiry_date === '') payload.expiry_date = null;
@@ -416,6 +418,7 @@ export default function AdminInventory() {
                     <td style={{ padding: '9px 12px', minWidth: 160 }}>
                       <div style={{ fontWeight: 600, color: '#111827', marginBottom: 2, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</div>
                       {item.category && <div style={{ fontSize: 11, color: '#9ca3af' }}>{item.category}</div>}
+                      {item.brand && <div style={{ fontSize: 11, color: '#6b7280' }}>{item.brand}</div>}
                       {(item.variant_size || item.variant_color) && (
                         <div style={{ fontSize: 11, color: '#6b7280' }}>
                           {[item.variant_size, item.variant_color].filter(Boolean).join(' / ')}
@@ -576,7 +579,12 @@ export default function AdminInventory() {
                 </div>
                 <div>
                   <label style={labelStyle}>Brand</label>
-                  <input value={form.brand} onChange={e => setF('brand', e.target.value)} placeholder="Brand name" style={inp} />
+                  <select value={form.brand_id} onChange={e => setF('brand_id', e.target.value)} style={inp}>
+                    <option value="">Select brand</option>
+                    {brands.map((brand) => (
+                      <option key={brand.id} value={brand.id}>{brand.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

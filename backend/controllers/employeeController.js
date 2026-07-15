@@ -4,6 +4,42 @@ const { pool, logAudit } = require('../config/db');
 const bcrypt = require('bcryptjs');
 
 const getScopedBusinessId = (req) => req.tenant?.business_id || req.user?.business_id || null;
+const getScopedStoreId = (req) => {
+  if (req.tenant?.store_id) return req.tenant.store_id;
+  if (['cashier', 'store_manager', 'store_admin', 'employee'].includes(req.user?.role)) {
+    return req.user?.store_id || null;
+  }
+  return null;
+};
+const getScopedWarehouseId = (req) => {
+  if (req.tenant?.warehouse_id) return req.tenant.warehouse_id;
+  if (req.user?.role === 'warehouse_manager') {
+    return req.user?.warehouse_id || null;
+  }
+  return null;
+};
+
+const validateLocationForBusiness = async (businessId, store_id, warehouse_id) => {
+  if (store_id !== undefined && store_id !== null) {
+    const storeRes = await pool.query(
+      'SELECT id FROM src_stores WHERE id = $1 AND business_id = $2',
+      [store_id, businessId]
+    );
+    if (!storeRes.rows.length) {
+      return { valid: false, message: 'Invalid store selected for this business' };
+    }
+  }
+  if (warehouse_id !== undefined && warehouse_id !== null) {
+    const warehouseRes = await pool.query(
+      'SELECT id FROM src_warehouses WHERE id = $1 AND business_id = $2',
+      [warehouse_id, businessId]
+    );
+    if (!warehouseRes.rows.length) {
+      return { valid: false, message: 'Invalid warehouse selected for this business' };
+    }
+  }
+  return { valid: true };
+};
 
 // Default permission names per role
 const ROLE_PERMISSIONS = {
@@ -36,6 +72,16 @@ const listEmployees = async (req, res) => {
 
     const params     = [businessId];
     const conditions = ["u.business_id = $1", "u.role NOT IN ('user', 'super_admin')"];
+    const storeId     = getScopedStoreId(req);
+    const warehouseId = getScopedWarehouseId(req);
+
+    if (warehouseId) {
+      params.push(warehouseId);
+      conditions.push(`u.warehouse_id = $${params.length}`);
+    } else if (storeId) {
+      params.push(storeId);
+      conditions.push(`u.store_id = $${params.length}`);
+    }
 
     if (search) {
       params.push(`%${search}%`);
@@ -91,6 +137,8 @@ const createEmployee = async (req, res) => {
   if (!businessId) return res.status(400).json({ message: 'Business context required' });
 
   const { name, email, phone, role, store_id, warehouse_id, employee_code, password } = req.body;
+  const validation = await validateLocationForBusiness(businessId, store_id, warehouse_id);
+  if (!validation.valid) return res.status(400).json({ message: validation.message });
 
   if (!name || !name.trim()) return res.status(400).json({ message: 'Name is required' });
   if (!email || !email.trim()) return res.status(400).json({ message: 'Email is required' });
@@ -196,6 +244,9 @@ const updateEmployee = async (req, res) => {
 
     const { id } = req.params;
     const { name, phone, role, store_id, warehouse_id, employee_code, is_banned } = req.body;
+
+    const validation = await validateLocationForBusiness(businessId, store_id, warehouse_id);
+    if (!validation.valid) return res.status(400).json({ message: validation.message });
 
     const existing = await pool.query(
       'SELECT id FROM src_users WHERE id = $1 AND business_id = $2',

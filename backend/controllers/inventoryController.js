@@ -114,10 +114,10 @@ const listItems = async (req, res) => {
 
     params.push(limit, offset);
     const dataRes = await pool.query(
-      `SELECT i.*,
-              s.name AS supplier_name
+      `SELECT i.*, s.name AS supplier_name, b.name AS brand
          FROM src_erp_inventory_items i
     LEFT JOIN src_erp_suppliers s ON s.id = i.supplier_id
+    LEFT JOIN src_erp_brands b ON b.id = i.brand_id
         WHERE ${where}
      ORDER BY i.created_at DESC
         LIMIT $${params.length - 1} OFFSET $${params.length}`,
@@ -187,9 +187,9 @@ const createItem = async (req, res) => {
            (business_id, title, sku, barcode, internal_product_id, category,
             purchase_price, selling_price, mrp, current_stock, reorder_level,
             gst_rate, hsn_code, variant_size, variant_color, warehouse_id,
-            supplier_id, notes, status, created_at, updated_at)
+            supplier_id, brand_id, notes, status, created_at, updated_at)
          VALUES
-           ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'active',NOW(),NOW())
+           ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'active',NOW(),NOW())
          RETURNING *`,
         [
           businessId, title, sku, barcode, internal_product_id, category || null,
@@ -197,7 +197,7 @@ const createItem = async (req, res) => {
           current_stock, reorder_level,
           gst_rate || null, hsn_code || null,
           variant_size || null, variant_color || null,
-          warehouse_id || null, supplier_id || null, notes || null,
+          warehouse_id || null, supplier_id || null, req.body.brand_id || null, notes || null,
         ]
       );
       return insertRes.rows[0];
@@ -318,7 +318,7 @@ const updateItem = async (req, res) => {
   const allowed = [
     'title', 'category', 'purchase_price', 'selling_price', 'mrp',
     'reorder_level', 'gst_rate', 'hsn_code', 'variant_size', 'variant_color',
-    'warehouse_id', 'supplier_id', 'notes', 'status',
+    'warehouse_id', 'supplier_id', 'brand_id', 'notes', 'status',
   ];
 
   const fields = [];
@@ -623,7 +623,7 @@ const exportItems = async (req, res) => {
     const { rows } = await pool.query(
       `SELECT title, sku, barcode, category, variant_size, variant_color,
               purchase_price, selling_price, mrp, current_stock, reorder_level,
-              gst_rate, hsn_code, warehouse_id
+              gst_rate, hsn_code, warehouse_id, brand_id
          FROM src_erp_inventory_items
         WHERE business_id=$1 AND status != 'archived'
         ORDER BY title`,

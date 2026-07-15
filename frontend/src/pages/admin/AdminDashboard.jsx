@@ -44,6 +44,7 @@ import AdminProducts from './AdminProducts';
 import AdminDelivery from './AdminDelivery';
 import AdminCoupons from './AdminCoupons';
 import AdminCategories from './AdminCategories';
+import AdminBrands from './AdminBrands';
 import AdminHomepage from './AdminHomepage';
 import AdminQueries from './AdminQueries';
 import AdminNotifications from './AdminNotifications';
@@ -188,6 +189,8 @@ export default function AdminDashboard() {
         return <AdminInventory />;
       case 'warehouse':
         return <AdminWarehouse />;
+      case 'brands':
+        return <AdminBrands />;
       case 'customers':
         return <AdminCustomers />;
       case 'suppliers':
