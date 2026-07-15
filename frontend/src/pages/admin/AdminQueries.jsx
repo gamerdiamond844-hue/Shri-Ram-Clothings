@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Eye, Trash2, Send, Download, X, MessageSquare } from 'lucide-react';
-import api from '../../utils/api';
+import api, { downloadFile } from '../../utils/api';
 import toast from 'react-hot-toast';
 
 const STATUS_STYLE = {
@@ -95,8 +95,12 @@ export default function AdminQueries() {
     } catch { toast.error('Failed'); }
   };
 
-  const exportCSV = () => {
-    window.open('/api/admin/queries/export', '_blank');
+  const exportCSV = async () => {
+    try {
+      await downloadFile('/admin/queries/export', 'queries.csv');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to download export');
+    }
   };
 
   const totalPages = Math.ceil(total / LIMIT);

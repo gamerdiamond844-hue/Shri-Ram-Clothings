@@ -5,7 +5,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const cloudinary = require('../config/cloudinary').cloudinary;
 const hp = require('../controllers/homepageController');
 
-const guard = [auth, requireRole('admin')];
+const guard = [auth, requireRole('admin', 'super_admin')];
 
 // Cloudinary storage for banners (images)
 const bannerStorage = new CloudinaryStorage({

@@ -4,7 +4,7 @@ const { uploadProduct } = require('../config/cloudinary');
 const admin = require('../controllers/adminController');
 const { updateProduct, deleteProduct: deleteProductCtrl } = require('../controllers/productController');
 
-const guard = [auth, requireRole('admin')];
+const guard = [auth, requireRole('admin', 'super_admin')];
 
 router.get('/stats', ...guard, admin.getStats);
 router.get('/analytics', ...guard, admin.getAnalytics);

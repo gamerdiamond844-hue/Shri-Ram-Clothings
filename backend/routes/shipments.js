@@ -2,7 +2,7 @@ const router = require('express').Router();
 const { auth, requireRole } = require('../middleware/auth');
 const s = require('../controllers/shipmentController');
 
-const adminGuard = [auth, requireRole('admin')];
+const adminGuard = [auth, requireRole('admin', 'super_admin')];
 
 // User routes
 router.get('/:id/tracking', auth, s.getTracking);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, Plus, X, Pencil, ToggleLeft, ToggleRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import api from '../utils/api';
+import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
 const inputStyle = {
