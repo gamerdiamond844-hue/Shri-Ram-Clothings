@@ -22,6 +22,7 @@ import {
   Menu,
   MessageSquare,
   Package,
+  Phone,
   ReceiptText,
   ScanLine,
   Settings,
@@ -33,6 +34,7 @@ import {
   Truck,
   Undo2,
   UsersRound,
+  Video,
   Wallet,
   Warehouse,
   AlertTriangle,
@@ -74,6 +76,9 @@ const AdminSettings       = lazy(() => import('./erp/AdminSettings'));
 const AdminStoreManagement = lazy(() => import('./erp/AdminStoreManagement'));
 const AdminRoleManagement = lazy(() => import('./erp/AdminRoleManagement'));
 const AdminSuperAdmin     = lazy(() => import('./erp/AdminSuperAdmin'));
+const AdminChatSupport    = lazy(() => import('./erp/AdminChatSupport'));
+const AdminVideoCalls     = lazy(() => import('./erp/AdminVideoCalls'));
+const AdminVoiceCalls     = lazy(() => import('./erp/AdminVoiceCalls'));
 
 const formatBytes = (bytes) => {
   if (!bytes) return '0 B';
@@ -162,6 +167,7 @@ export default function AdminDashboard() {
   const location = useLocation();
   const [section, setSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [cloudMetrics, setCloudMetrics] = useState(null);
   const [erpBootstrap, setErpBootstrap] = useState(null);
 
@@ -224,6 +230,12 @@ export default function AdminDashboard() {
         return <AdminRoleManagement />;
       case 'super-admin':
         return <AdminSuperAdmin />;
+      case 'chat-support':
+        return <AdminChatSupport />;
+      case 'video-calls':
+        return <AdminVideoCalls />;
+      case 'voice-calls':
+        return <AdminVoiceCalls />;
       case 'homepage':
         return <AdminHomepage />;
       case 'products':
@@ -300,7 +312,7 @@ export default function AdminDashboard() {
   const Sidebar = () => (
     <aside
       style={{
-        width: 290,
+        width: sidebarCollapsed ? 88 : 290,
         background: '#0f172a',
         display: 'flex',
         flexDirection: 'column',
@@ -308,20 +320,44 @@ export default function AdminDashboard() {
         flexShrink: 0,
       }}
     >
-      <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/logo.jpg" alt="SR" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
-          <div style={{ minWidth: 0 }}>
-            <div style={{ color: '#fff', fontWeight: 800, fontSize: 14, lineHeight: 1.2 }}>Shri Ram Clothings</div>
-            <div style={{ color: '#f97316', fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 2 }}>Integrated ERP Admin</div>
+      <div style={{ padding: sidebarCollapsed ? '18px 8px 14px' : '18px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+            <img src="/logo.jpg" alt="SR" style={{ width: 42, height: 42, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+            {!sidebarCollapsed && (
+              <div style={{ minWidth: 0 }}>
+                <div style={{ color: '#fff', fontWeight: 800, fontSize: 14, lineHeight: 1.2 }}>Shri Ram Clothings</div>
+                <div style={{ color: '#f97316', fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 2 }}>Integrated ERP Admin</div>
+              </div>
+            )}
           </div>
+
+          <button
+            onClick={() => setSidebarCollapsed((prev) => !prev)}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.08)',
+              color: '#fff',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {sidebarCollapsed ? '›' : '‹'}
+          </button>
         </div>
       </div>
 
-      <nav style={{ flex: 1, padding: '12px 10px', overflowY: 'auto', display: 'grid', gap: 14 }}>
+      <nav style={{ flex: 1, padding: sidebarCollapsed ? '12px 6px' : '12px 10px', overflowY: 'auto', display: 'grid', gap: 14 }}>
         {visibleGroups.map((group) => (
           <div key={group.key} style={{ display: 'grid', gap: 4 }}>
-            <div style={{ padding: '0 10px 6px', fontSize: 10, color: '#64748b', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 700 }}>
+            <div style={{ display: sidebarCollapsed ? 'none' : 'block', padding: '0 10px 6px', fontSize: 10, color: '#64748b', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 700 }}>
               {group.label}
             </div>
             {group.items.map(({ key, label, icon }) => {
@@ -337,8 +373,9 @@ export default function AdminDashboard() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 10,
-                    padding: '10px 12px',
+                    gap: sidebarCollapsed ? 0 : 10,
+                    padding: sidebarCollapsed ? '10px 8px' : '10px 12px',
+                    justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                     borderRadius: 12,
                     border: 'none',
                     cursor: 'pointer',
@@ -364,7 +401,9 @@ export default function AdminDashboard() {
                   }}
                 >
                   <Icon size={17} />
-                  <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                  {!sidebarCollapsed && (
+                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                  )}
                 </button>
               );
             })}
@@ -373,27 +412,31 @@ export default function AdminDashboard() {
       </nav>
 
       <div style={{ padding: '10px 12px 0', display: 'grid', gap: 10 }}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: 11, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase' }}>ERP scope</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{visibleItems.length}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8' }}>Visible modules for this signed-in role</div>
-        </div>
+        {!sidebarCollapsed && (
+          <>
+            <div style={cardStyle}>
+              <div style={{ fontSize: 11, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase' }}>ERP scope</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{visibleItems.length}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Visible modules for this signed-in role</div>
+            </div>
 
-        <div style={cardStyle}>
-          <div style={{ fontSize: 11, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Revenue 30d</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>
-            ₹{Number(erpBootstrap?.summary?.revenue_30d || 0).toLocaleString('en-IN')}
-          </div>
-          <div style={{ fontSize: 12, color: '#94a3b8' }}>
-            {erpBootstrap?.summary?.orders_30d || 0} orders in the last 30 days
-          </div>
-        </div>
+            <div style={cardStyle}>
+              <div style={{ fontSize: 11, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Revenue 30d</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>
+                ₹{Number(erpBootstrap?.summary?.revenue_30d || 0).toLocaleString('en-IN')}
+              </div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                {erpBootstrap?.summary?.orders_30d || 0} orders in the last 30 days
+              </div>
+            </div>
 
-        <div style={cardStyle}>
-          <div style={{ fontSize: 11, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Cloud usage</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{cloudMetrics ? formatBytes(cloudMetrics.total_bytes) : 'Loading...'}</div>
-          <div style={{ fontSize: 12, color: '#94a3b8' }}>{cloudMetrics ? `${cloudMetrics.total_files} files stored` : 'Secure admin vault'}</div>
-        </div>
+            <div style={cardStyle}>
+              <div style={{ fontSize: 11, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Cloud usage</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{cloudMetrics ? formatBytes(cloudMetrics.total_bytes) : 'Loading...'}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>{cloudMetrics ? `${cloudMetrics.total_files} files stored` : 'Secure admin vault'}</div>
+            </div>
+          </>
+        )}
       </div>
 
       <div style={{ padding: '12px 10px 16px', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 12 }}>

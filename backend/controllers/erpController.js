@@ -49,6 +49,13 @@ const ERP_GROUPS = [
 const parseMoney = (value) => Number.parseFloat(value || 0);
 const parseCount = (value) => Number.parseInt(value || 0, 10);
 
+const slugify = (value) => String(value || '')
+  .trim()
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 180);
+
 const canAccessModule = (user, module) => {
   if (!user || !module) return false;
   if (user.role === 'super_admin') return true;
@@ -1171,14 +1178,25 @@ const createStore = async (req, res) => {
     const businessId = getScopedBusinessId(req);
     if (!businessId) return res.status(400).json({ message: 'Business context required' });
 
-    const { name, store_code, address, phone, email } = req.body;
+    const { name, store_code, address, phone, email, slug } = req.body;
     if (!name || !store_code) return res.status(400).json({ message: 'name and store_code are required' });
 
+    let storeSlug = slugify(slug || store_code || name);
+    if (!storeSlug) storeSlug = slugify(name || store_code);
+
+    const existingSlug = await pool.query(
+      `SELECT id FROM src_stores WHERE slug = $1 LIMIT 1`,
+      [storeSlug]
+    );
+    if (existingSlug.rows.length) {
+      storeSlug = `${storeSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+
     const result = await pool.query(
-      `INSERT INTO src_stores (business_id, name, store_code, address, phone, email, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+      `INSERT INTO src_stores (business_id, name, slug, store_code, address, phone, email, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
        RETURNING *`,
-      [businessId, name, store_code, address || null, phone || null, email || null]
+      [businessId, name, storeSlug, store_code, address || null, phone || null, email || null]
     );
 
     res.json({ store: result.rows[0] });

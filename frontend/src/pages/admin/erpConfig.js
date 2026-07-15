@@ -54,6 +54,15 @@ export const ERP_NAV_GROUPS = [
       { key: 'cloud', label: 'Cloud Vault', icon: 'Cloud', componentKey: 'cloud', roles: ['admin', 'super_admin'], description: 'Admin media vault and secure cloud asset controls.' },
     ],
   },
+  {
+    key: 'internal-communications',
+    label: 'Internal Communications',
+    items: [
+      { key: 'chat-support', label: 'Chat Support', icon: 'MessageSquare', componentKey: 'chat-support', description: 'Internal chat for admin and employee collaboration.' },
+      { key: 'video-calls', label: 'Video Calls', icon: 'Video', componentKey: 'video-calls', description: 'Launch or join internal video meetings for the team.' },
+      { key: 'voice-calls', label: 'Voice Calls', icon: 'Phone', componentKey: 'voice-calls', description: 'Internal voice call panel for admin and employee communications.' },
+    ],
+  },
 ];
 
 export const ADMIN_ROUTE_ALIASES = {
@@ -84,11 +93,6 @@ export const canAccessModule = (user, module) => {
   }
 
   const userPermissions = user.permissions || [];
-  // If user has no permissions yet but is a business owner or store admin, show everything
-  if (userPermissions.length === 0 && ['business_owner', 'store_admin', 'store_manager'].includes(user.role)) {
-    return true;
-  }
-
   return module.permissions.some((permission) => userPermissions.includes(permission));
 };
 
