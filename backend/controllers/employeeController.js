@@ -264,9 +264,6 @@ const updateEmployee = async (req, res) => {
     const { id } = req.params;
     const { name, phone, role, store_id, warehouse_id, employee_code, is_banned } = req.body;
 
-    const validation = await validateLocationForBusiness(businessId, store_id, warehouse_id);
-    if (!validation.valid) return res.status(400).json({ message: validation.message });
-
     const existing = await pool.query(
       'SELECT id FROM src_users WHERE id = $1 AND business_id = $2',
       [id, businessId]
