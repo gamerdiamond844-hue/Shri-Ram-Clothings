@@ -245,6 +245,29 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS src_private_chat_threads (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        user_one_id INTEGER REFERENCES src_users(id) ON DELETE CASCADE,
+        user_two_id INTEGER REFERENCES src_users(id) ON DELETE CASCADE,
+        created_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE (user_one_id, user_two_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS src_private_chat_messages (
+        id SERIAL PRIMARY KEY,
+        thread_id INTEGER REFERENCES src_private_chat_threads(id) ON DELETE CASCADE,
+        sender_user_id INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        message TEXT,
+        attachment_url TEXT,
+        message_type VARCHAR(50) DEFAULT 'text',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS src_internal_meetings (
         id SERIAL PRIMARY KEY,
         business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,

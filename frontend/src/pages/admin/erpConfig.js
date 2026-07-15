@@ -58,9 +58,11 @@ export const ERP_NAV_GROUPS = [
     key: 'internal-communications',
     label: 'Internal Communications',
     items: [
-      { key: 'chat-support', label: 'Chat Support', icon: 'MessageSquare', componentKey: 'chat-support', description: 'Internal chat for admin and employee collaboration.' },
-      { key: 'video-calls', label: 'Video Calls', icon: 'Video', componentKey: 'video-calls', description: 'Launch or join internal video meetings for the team.' },
-      { key: 'voice-calls', label: 'Voice Calls', icon: 'Phone', componentKey: 'voice-calls', description: 'Internal voice call panel for admin and employee communications.' },
+      { key: 'chat-support', label: 'Chat Support', icon: 'MessageSquare', componentKey: 'chat-support', roles: ['admin','super_admin','business_owner','store_admin','store_manager','cashier','warehouse_manager','accountant','employee'], description: 'Internal chat for admin and employee collaboration.' },
+      { key: 'private-chat', label: 'Private Messages', icon: 'MessageCircle', componentKey: 'private-chat', roles: ['admin','super_admin','business_owner','store_admin','store_manager','cashier','warehouse_manager','accountant','employee'], description: 'Search users by email or phone and exchange private messages.' },
+      { key: 'video-calls', label: 'Video Calls', icon: 'Video', componentKey: 'video-calls', roles: ['admin','super_admin','business_owner','store_admin','store_manager','cashier','warehouse_manager','accountant','employee'], description: 'Launch or join internal video meetings for the team.' },
+      { key: 'voice-calls', label: 'Voice Calls', icon: 'Phone', componentKey: 'voice-calls', roles: ['admin','super_admin','business_owner','store_admin','store_manager','cashier','warehouse_manager','accountant','employee'], description: 'Internal voice call panel for admin and employee communications.' },
+      { key: 'conversations', label: 'Conversation Monitor', icon: 'Eye', componentKey: 'conversations', roles: ['admin','super_admin','business_owner','store_admin','store_manager','cashier','warehouse_manager','accountant'], description: 'View any private conversation for security and auditing purposes.' },
     ],
   },
 ];

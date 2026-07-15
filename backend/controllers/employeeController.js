@@ -136,7 +136,26 @@ const createEmployee = async (req, res) => {
   const businessId = getScopedBusinessId(req);
   if (!businessId) return res.status(400).json({ message: 'Business context required' });
 
-  const { name, email, phone, role, store_id, warehouse_id, employee_code, password } = req.body;
+  const creatorStoreId = getScopedStoreId(req);
+  const creatorWarehouseId = getScopedWarehouseId(req);
+  let { name, email, phone, role, store_id, warehouse_id, employee_code, password } = req.body;
+
+  if (creatorStoreId) {
+    if (warehouse_id) return res.status(403).json({ message: 'Cannot assign warehouse employees from a store-level account' });
+    if (store_id && Number(store_id) !== Number(creatorStoreId)) {
+      return res.status(403).json({ message: 'Cannot assign employee to a different store' });
+    }
+    store_id = creatorStoreId;
+  }
+
+  if (creatorWarehouseId) {
+    if (store_id) return res.status(403).json({ message: 'Cannot assign store employees from a warehouse-level account' });
+    if (warehouse_id && Number(warehouse_id) !== Number(creatorWarehouseId)) {
+      return res.status(403).json({ message: 'Cannot assign employee to a different warehouse' });
+    }
+    warehouse_id = creatorWarehouseId;
+  }
+
   const validation = await validateLocationForBusiness(businessId, store_id, warehouse_id);
   if (!validation.valid) return res.status(400).json({ message: validation.message });
 
@@ -255,6 +274,32 @@ const updateEmployee = async (req, res) => {
     if (!existing.rows.length) {
       return res.status(404).json({ message: 'Employee not found' });
     }
+
+    const creatorStoreId = getScopedStoreId(req);
+    const creatorWarehouseId = getScopedWarehouseId(req);
+
+    if (creatorStoreId) {
+      if (warehouse_id !== undefined && warehouse_id !== null) {
+        return res.status(403).json({ message: 'Cannot assign warehouse employees from a store-level account' });
+      }
+      if (store_id !== undefined && store_id !== null && Number(store_id) !== Number(creatorStoreId)) {
+        return res.status(403).json({ message: 'Cannot assign employee to a different store' });
+      }
+      store_id = creatorStoreId;
+    }
+
+    if (creatorWarehouseId) {
+      if (store_id !== undefined && store_id !== null) {
+        return res.status(403).json({ message: 'Cannot assign store employees from a warehouse-level account' });
+      }
+      if (warehouse_id !== undefined && warehouse_id !== null && Number(warehouse_id) !== Number(creatorWarehouseId)) {
+        return res.status(403).json({ message: 'Cannot assign employee to a different warehouse' });
+      }
+      warehouse_id = creatorWarehouseId;
+    }
+
+    const validation = await validateLocationForBusiness(businessId, store_id, warehouse_id);
+    if (!validation.valid) return res.status(400).json({ message: validation.message });
 
     const result = await pool.query(
       `UPDATE src_users

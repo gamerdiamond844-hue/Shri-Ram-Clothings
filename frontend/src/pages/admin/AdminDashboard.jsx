@@ -12,6 +12,7 @@ import {
   Cloud,
   Cpu,
   Crown,
+  Eye,
   FileClock,
   FolderOpen,
   KeyRound,
@@ -20,6 +21,7 @@ import {
   LogOut,
   MapPinned,
   Menu,
+  MessageCircle,
   MessageSquare,
   Package,
   Phone,
@@ -77,6 +79,8 @@ const AdminStoreManagement = lazy(() => import('./erp/AdminStoreManagement'));
 const AdminRoleManagement = lazy(() => import('./erp/AdminRoleManagement'));
 const AdminSuperAdmin     = lazy(() => import('./erp/AdminSuperAdmin'));
 const AdminChatSupport    = lazy(() => import('./erp/AdminChatSupport'));
+const AdminPrivateChat    = lazy(() => import('./erp/AdminPrivateChat'));
+const AdminConversationMonitor = lazy(() => import('./erp/AdminConversationMonitor'));
 const AdminVideoCalls     = lazy(() => import('./erp/AdminVideoCalls'));
 const AdminVoiceCalls     = lazy(() => import('./erp/AdminVoiceCalls'));
 
@@ -234,6 +238,10 @@ export default function AdminDashboard() {
         return <AdminSuperAdmin />;
       case 'chat-support':
         return <AdminChatSupport />;
+      case 'private-chat':
+        return <AdminPrivateChat />;
+      case 'conversations':
+        return <AdminConversationMonitor />;
       case 'video-calls':
         return <AdminVideoCalls />;
       case 'voice-calls':

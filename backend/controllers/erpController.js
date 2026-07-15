@@ -73,6 +73,13 @@ const getVisibleModuleGroups = (user) =>
     .filter((group) => group.items.length > 0);
 
 const getScopedBusinessId = (req) => req.tenant?.business_id || req.user?.business_id || null;
+const getScopedStoreId = (req) => {
+  if (req.tenant?.store_id) return req.tenant.store_id;
+  if (['store_admin', 'store_manager', 'cashier', 'employee'].includes(req.user?.role)) {
+    return req.user?.store_id || null;
+  }
+  return null;
+};
 
 // For super_admin with no business context, fetch the first business from DB
 const getEffectiveBusinessId = async (req) => {
@@ -671,6 +678,7 @@ const listBusinesses = async (_, res) => {
 const listStores = async (req, res) => {
   try {
     const businessId = getScopedBusinessId(req);
+    const storeId = getScopedStoreId(req);
     const baseQuery = `
       SELECT s.id, s.name, s.slug, s.store_code, s.address, s.phone, s.email, s.business_id, s.is_active,
              b.name AS business_name
@@ -678,11 +686,22 @@ const listStores = async (req, res) => {
       LEFT JOIN src_businesses b ON b.id = s.business_id
     `;
 
-    const query = req.user?.role === 'super_admin'
-      ? `${baseQuery} ORDER BY s.created_at DESC`
-      : `${baseQuery} WHERE s.business_id = $1 ORDER BY s.created_at DESC`;
+    let query;
+    let params = [];
 
-    const result = await pool.query(query, req.user?.role === 'super_admin' ? [] : [businessId]);
+    if (req.user?.role === 'super_admin') {
+      query = `${baseQuery} ORDER BY s.created_at DESC`;
+    } else if (storeId) {
+      query = `${baseQuery} WHERE s.id = $1 ORDER BY s.created_at DESC`;
+      params = [storeId];
+    } else if (businessId) {
+      query = `${baseQuery} WHERE s.business_id = $1 ORDER BY s.created_at DESC`;
+      params = [businessId];
+    } else {
+      return res.status(400).json({ message: 'Business context required' });
+    }
+
+    const result = await pool.query(query, params);
     res.json({ stores: result.rows });
   } catch (err) {
     res.status(500).json({ message: err.message });
