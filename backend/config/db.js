@@ -236,6 +236,26 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS src_internal_chat_messages (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        sender_user_id INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS src_internal_meetings (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        created_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        title VARCHAR(200) NOT NULL,
+        room_name VARCHAR(200) UNIQUE NOT NULL,
+        mode VARCHAR(20) NOT NULL CHECK (mode IN ('video','voice')),
+        is_audio_only BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS src_settings (
         key VARCHAR(100) PRIMARY KEY,
         value TEXT,

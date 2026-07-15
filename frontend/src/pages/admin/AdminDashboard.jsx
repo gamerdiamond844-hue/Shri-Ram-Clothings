@@ -116,6 +116,8 @@ const iconMap = {
   Layout,
   MapPinned,
   MessageSquare,
+  Video,
+  Phone,
   Star,
   Tag,
   Cloud,
