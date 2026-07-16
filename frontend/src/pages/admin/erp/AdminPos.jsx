@@ -157,16 +157,17 @@ export default function AdminPos() {
           : i
         );
       }
+      const unitPrice = parseFloat(product.selling_price || product.price || product.unit_price || 0);
       return [...prev, {
         id: product.id,
         inventory_item_id: product.inventory_item_id || product.id,
         title: product.title || product.name,
         sku: product.sku || '',
         quantity: 1,
-        unit_price: product.price || product.unit_price || 0,
+        unit_price: unitPrice,
         discount: 0,
         gst_rate: product.gst_rate || 0,
-        line_total: product.price || product.unit_price || 0,
+        line_total: unitPrice,
       }];
     });
     setSearch('');
@@ -505,7 +506,7 @@ export default function AdminPos() {
                       <div style={{ fontWeight: 600, fontSize: 13, color: '#111827' }}>{p.title || p.name}</div>
                       <div style={{ fontSize: 11, color: '#9ca3af' }}>SKU: {p.sku || '—'} · Stock: {p.stock ?? '—'}</div>
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#f97316', whiteSpace: 'nowrap' }}>{fmt(p.price || p.unit_price)}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#f97316', whiteSpace: 'nowrap' }}>{fmt(p.selling_price || p.price || p.unit_price)}</div>
                   </button>
                 ))}
               </div>

@@ -1,9 +1,13 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { initDB } = require('./config/db');
+const http = require('http');
+const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
+const { initDB, pool } = require('./config/db');
 
 const app = express();
+const httpServer = http.createServer(app);
 
 const normalizeOrigin = (o) => (o || '').trim().replace(/\/+$/, '');
 
@@ -38,6 +42,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(require('./middleware/tenant').tenant);
 
+// ── HTTP request logger (4xx / 5xx) ────────────────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    const status = res.statusCode;
+    if (status >= 400) {
+      const level = status >= 500 ? '❌ ERROR' : '⚠️  WARN';
+      console.log(`${level} ${req.method} ${req.path} ${status} ${ms}ms`);
+    }
+  });
+  next();
+});
+
+// ── Input sanitisation for all ERP write endpoints ──────────────────────────
+const { sanitize } = require('./middleware/sanitize');
+app.use('/api/erp', sanitize);
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/cart', require('./routes/cart'));
@@ -60,6 +82,7 @@ app.use('/api/erp/attendance', require('./routes/attendance'));
 app.use('/api/erp/expenses', require('./routes/expenses'));
 app.use('/api/erp/roles', require('./routes/roles'));
 app.use('/api/erp/sales', require('./routes/salesOrders'));
+app.use('/api/erp/payroll', require('./routes/payroll'));
 app.use('/api/homepage', require('./routes/homepage'));
 app.use('/api/contact', require('./routes/contact'));
 app.use('/api/notifications', require('./routes/notifications'));
@@ -169,7 +192,140 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 initDB().then(() => {
-  app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Shri Ram Clothings API running on port ${PORT}`));
+  httpServer.listen(PORT, '0.0.0.0', () => console.log(`🚀 Shri Ram Clothings API running on port ${PORT}`));
+
+  // ── Socket.IO real-time chat ──────────────────────────────────────────────
+  const io = new Server(httpServer, {
+    cors: {
+      origin: (origin, cb) => {
+        if (!origin) return cb(null, true);
+        const o = (origin || '').trim().replace(/\/+$/, '');
+        if (/localhost/.test(o) || /\.vercel\.app$/.test(o) || /\.onrender\.com$/.test(o)) return cb(null, true);
+        const envOrigins = (process.env.FRONTEND_URL || '').split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean);
+        if (envOrigins.includes(o)) return cb(null, true);
+        if (process.env.NODE_ENV !== 'production') return cb(null, true);
+        return cb(new Error('CORS blocked'));
+      },
+      credentials: true,
+    },
+    transports: ['websocket', 'polling'],
+  });
+
+  // Authenticate socket connections via JWT
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+      if (!token) return next(new Error('Authentication required'));
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      const userRes = await pool.query(
+        `SELECT id, name, role, business_id, store_id FROM src_users WHERE id=$1 AND is_banned=FALSE`,
+        [payload.id]
+      );
+      if (!userRes.rows.length) return next(new Error('User not found'));
+      socket.user = userRes.rows[0];
+      next();
+    } catch (err) {
+      next(new Error('Invalid token'));
+    }
+  });
+
+  io.on('connection', (socket) => {
+    const user = socket.user;
+    const businessRoom = `business:${user.business_id}`;
+    const userRoom = `user:${user.id}`;
+
+    // Join business-wide room and personal room
+    socket.join(businessRoom);
+    socket.join(userRoom);
+
+    // Broadcast online status
+    socket.to(businessRoom).emit('user:online', { userId: user.id, name: user.name });
+
+    // ── Group chat message ──────────────────────────────────────────────────
+    socket.on('chat:send', async (data) => {
+      try {
+        const { message, store_id } = data;
+        if (!message?.trim()) return;
+        const result = await pool.query(
+          `INSERT INTO src_internal_chat_messages (business_id, sender_user_id, store_id, message)
+           VALUES ($1, $2, $3, $4) RETURNING *`,
+          [user.business_id, user.id, store_id || user.store_id || null, message.trim()]
+        );
+        const msg = result.rows[0];
+        const fullMsg = { ...msg, sender_name: user.name };
+        io.to(businessRoom).emit('chat:message', fullMsg);
+      } catch (err) {
+        socket.emit('chat:error', { message: 'Failed to send message' });
+      }
+    });
+
+    // ── Private message ─────────────────────────────────────────────────────
+    socket.on('private:send', async (data) => {
+      try {
+        const { thread_id, message, message_type = 'text' } = data;
+        if (!message?.trim() && message_type === 'text') return;
+        // Verify thread access
+        const threadRes = await pool.query(
+          `SELECT * FROM src_private_chat_threads WHERE id=$1 AND (user_one_id=$2 OR user_two_id=$2)`,
+          [thread_id, user.id]
+        );
+        if (!threadRes.rows.length) return socket.emit('private:error', { message: 'Thread not found' });
+        const thread = threadRes.rows[0];
+        const recipientId = thread.user_one_id === user.id ? thread.user_two_id : thread.user_one_id;
+
+        const insertRes = await pool.query(
+          `INSERT INTO src_private_chat_messages (thread_id, sender_user_id, message, message_type)
+           VALUES ($1, $2, $3, $4) RETURNING *`,
+          [thread_id, user.id, message.trim(), message_type]
+        );
+        await pool.query('UPDATE src_private_chat_threads SET updated_at=NOW() WHERE id=$1', [thread_id]);
+
+        const fullMsg = { ...insertRes.rows[0], sender_name: user.name };
+        // Send to recipient's personal room
+        io.to(`user:${recipientId}`).emit('private:message', fullMsg);
+        // Echo back to sender
+        socket.emit('private:message', fullMsg);
+      } catch (err) {
+        socket.emit('private:error', { message: 'Failed to send message' });
+      }
+    });
+
+    // ── Typing indicator ────────────────────────────────────────────────────
+    socket.on('typing:start', (data) => {
+      const { thread_id } = data;
+      if (thread_id) {
+        socket.to(`thread:${thread_id}`).emit('typing:start', { userId: user.id, name: user.name });
+      } else {
+        socket.to(businessRoom).emit('typing:start', { userId: user.id, name: user.name });
+      }
+    });
+
+    socket.on('typing:stop', (data) => {
+      const { thread_id } = data;
+      if (thread_id) {
+        socket.to(`thread:${thread_id}`).emit('typing:stop', { userId: user.id });
+      } else {
+        socket.to(businessRoom).emit('typing:stop', { userId: user.id });
+      }
+    });
+
+    // ── Join private thread room ────────────────────────────────────────────
+    socket.on('thread:join', (data) => {
+      socket.join(`thread:${data.thread_id}`);
+    });
+
+    socket.on('thread:leave', (data) => {
+      socket.leave(`thread:${data.thread_id}`);
+    });
+
+    // ── Disconnect ──────────────────────────────────────────────────────────
+    socket.on('disconnect', () => {
+      socket.to(businessRoom).emit('user:offline', { userId: user.id });
+    });
+  });
+
+  // Expose io for use in controllers
+  app.set('io', io);
 
   // ── Cron: Cart reminders every 6 hours ──
   const cron = require('node-cron');

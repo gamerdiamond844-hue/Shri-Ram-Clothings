@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Search, Plus, X, Pencil, ChevronLeft, ChevronRight,
-  User, ShieldCheck, Store, Hash, Ban, CheckCircle,
+  User, ShieldCheck, Store, Hash, Ban, CheckCircle, Trash2,
 } from 'lucide-react';
 import api from '../../../utils/api';
 import toast from 'react-hot-toast';
@@ -60,8 +60,8 @@ export default function AdminEmployees() {
 
   // ── Load stores + warehouses once ────────────────────────────────────────
   useEffect(() => {
-    api.get('/erp/stores').then((r)     => setStores(r.data.stores     || r.data || [])).catch(() => {});
-    api.get('/erp/warehouses').then((r) => setWarehouses(r.data.warehouses || r.data || [])).catch(() => {});
+    api.get('/erp/stores').then(r => setStores(r.data.stores || [])).catch(() => {});
+    api.get('/erp/warehouses').then(r => setWarehouses(r.data.warehouses || [])).catch(() => {});
   }, []);
 
   // ── Fetch employees ───────────────────────────────────────────────────────
@@ -121,6 +121,17 @@ export default function AdminEmployees() {
   const f = (v) => setForm((p) => ({ ...p, ...v }));
 
   // ── Submit ────────────────────────────────────────────────────────────────
+  const handleDelete = async (emp) => {
+    if (!window.confirm(`Delete employee "${emp.name}"? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/erp/employees/${emp.id}`);
+      toast.success('Employee deleted');
+      fetchEmployees();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Delete failed');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim())  return toast.error('Name is required');
@@ -271,13 +282,22 @@ export default function AdminEmployees() {
                         )}
                       </td>
                       <td style={{ padding: '10px 12px' }}>
-                        <button
-                          onClick={() => openEdit(emp)}
-                          title="Edit"
-                          style={{ width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', background: '#fff7ed', color: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >
-                          <Pencil size={13} />
-                        </button>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            onClick={() => openEdit(emp)}
+                            title="Edit"
+                            style={{ width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', background: '#fff7ed', color: '#f97316', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(emp)}
+                            title="Delete"
+                            style={{ width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', background: '#fef2f2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

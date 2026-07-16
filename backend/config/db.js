@@ -781,6 +781,17 @@ const initDB = async () => {
       ALTER TABLE src_reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
     `).catch(() => {});
 
+    // ── Migrate src_stores to add enterprise fields ─────────────────────────
+    await client.query(`
+      ALTER TABLE src_stores ADD COLUMN IF NOT EXISTS gst_number VARCHAR(50);
+      ALTER TABLE src_stores ADD COLUMN IF NOT EXISTS city VARCHAR(100);
+      ALTER TABLE src_stores ADD COLUMN IF NOT EXISTS state VARCHAR(100);
+      ALTER TABLE src_stores ADD COLUMN IF NOT EXISTS pincode VARCHAR(20);
+      ALTER TABLE src_stores ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'INR';
+      ALTER TABLE src_stores ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Kolkata';
+      ALTER TABLE src_stores ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+    `).catch(() => {});
+
     // ── Migrate src_users role CHECK constraint to include all ERP roles ──────
     // Drop old constraint and recreate with full role list (idempotent via catch)
     await client.query(`ALTER TABLE src_users DROP CONSTRAINT IF EXISTS src_users_role_check`).catch(() => {});
@@ -865,6 +876,69 @@ const initDB = async () => {
       );
       CREATE INDEX IF NOT EXISTS idx_newsletter_email ON src_newsletter_subscribers(email);
       CREATE INDEX IF NOT EXISTS idx_newsletter_active ON src_newsletter_subscribers(is_active);
+    `);
+
+    // Payroll table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS src_erp_payroll (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        employee_id INTEGER REFERENCES src_users(id) ON DELETE CASCADE,
+        month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
+        year INTEGER NOT NULL,
+        basic_salary DECIMAL(12,2) DEFAULT 0,
+        allowances DECIMAL(12,2) DEFAULT 0,
+        deductions DECIMAL(12,2) DEFAULT 0,
+        bonus DECIMAL(12,2) DEFAULT 0,
+        net_salary DECIMAL(12,2) DEFAULT 0,
+        payment_mode VARCHAR(30) DEFAULT 'bank',
+        payment_date DATE,
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','paid','cancelled')),
+        notes TEXT,
+        created_by INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE (business_id, employee_id, month, year)
+      );
+      CREATE INDEX IF NOT EXISTS idx_erp_payroll_business ON src_erp_payroll(business_id, year, month);
+      CREATE INDEX IF NOT EXISTS idx_erp_payroll_employee ON src_erp_payroll(employee_id);
+    `);
+
+    // Login sessions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS src_login_sessions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES src_users(id) ON DELETE CASCADE,
+        ip_address VARCHAR(60),
+        user_agent TEXT,
+        device_type VARCHAR(50),
+        browser VARCHAR(100),
+        os VARCHAR(100),
+        location VARCHAR(200),
+        logged_in_at TIMESTAMP DEFAULT NOW(),
+        logged_out_at TIMESTAMP,
+        is_active BOOLEAN DEFAULT TRUE
+      );
+      CREATE INDEX IF NOT EXISTS idx_login_sessions_user ON src_login_sessions(user_id, logged_in_at DESC);
+    `);
+
+    // POS sessions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS src_erp_pos_sessions (
+        id SERIAL PRIMARY KEY,
+        business_id INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        store_id INTEGER REFERENCES src_stores(id) ON DELETE SET NULL,
+        cashier_id INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        opening_cash DECIMAL(12,2) DEFAULT 0,
+        closing_cash DECIMAL(12,2),
+        total_sales DECIMAL(12,2) DEFAULT 0,
+        total_bills INTEGER DEFAULT 0,
+        opened_at TIMESTAMP DEFAULT NOW(),
+        closed_at TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'open' CHECK (status IN ('open','closed'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_pos_sessions_business ON src_erp_pos_sessions(business_id, opened_at DESC);
     `);
 
     // Footer settings table
@@ -1031,6 +1105,137 @@ const initDB = async () => {
     `, [defaultAdminEmail]).catch(() => {});
 
     console.log('✅ Shri Ram Clothings DB initialized');
+
+    // ── Phase 2: Schema extensions ───────────────────────────────────────────
+    await client.query(`
+      -- Message status, edit/delete, reply, pin, star on private chat messages
+      ALTER TABLE src_private_chat_messages
+        ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'sent',
+        ADD COLUMN IF NOT EXISTS edited_at TIMESTAMP,
+        ADD COLUMN IF NOT EXISTS deleted_for_sender BOOLEAN DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS deleted_for_all BOOLEAN DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS reply_to_id INTEGER REFERENCES src_private_chat_messages(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS is_starred_by JSONB DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS forward_from_id INTEGER;
+    `).catch(() => {});
+
+    await client.query(`
+      -- Message reactions
+      CREATE TABLE IF NOT EXISTS src_message_reactions (
+        id         SERIAL PRIMARY KEY,
+        message_id INTEGER REFERENCES src_private_chat_messages(id) ON DELETE CASCADE,
+        user_id    INTEGER REFERENCES src_users(id) ON DELETE CASCADE,
+        emoji      VARCHAR(10) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(message_id, user_id, emoji)
+      );
+      CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON src_message_reactions(message_id);
+    `).catch(() => {});
+
+    await client.query(`
+      -- Call logs for in-house WebRTC
+      CREATE TABLE IF NOT EXISTS src_erp_call_logs (
+        id               SERIAL PRIMARY KEY,
+        business_id      INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        caller_id        INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        callee_id        INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        call_type        VARCHAR(10) DEFAULT 'audio',
+        status           VARCHAR(20) DEFAULT 'completed',
+        start_time       TIMESTAMP,
+        end_time         TIMESTAMP,
+        duration_seconds INTEGER DEFAULT 0,
+        created_at       TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_call_logs_business ON src_erp_call_logs(business_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_call_logs_caller   ON src_erp_call_logs(caller_id);
+      CREATE INDEX IF NOT EXISTS idx_call_logs_callee   ON src_erp_call_logs(callee_id);
+    `).catch(() => {});
+
+    await client.query(`
+      -- Warehouse zones and bin locations
+      CREATE TABLE IF NOT EXISTS src_warehouse_zones (
+        id           SERIAL PRIMARY KEY,
+        warehouse_id INTEGER REFERENCES src_warehouses(id) ON DELETE CASCADE,
+        business_id  INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        name         VARCHAR(150) NOT NULL,
+        zone_type    VARCHAR(50) DEFAULT 'storage',
+        capacity     INTEGER DEFAULT 0,
+        is_active    BOOLEAN DEFAULT TRUE,
+        created_at   TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_warehouse_zones_wh ON src_warehouse_zones(warehouse_id);
+
+      CREATE TABLE IF NOT EXISTS src_warehouse_bins (
+        id           SERIAL PRIMARY KEY,
+        zone_id      INTEGER REFERENCES src_warehouse_zones(id) ON DELETE CASCADE,
+        warehouse_id INTEGER REFERENCES src_warehouses(id) ON DELETE CASCADE,
+        business_id  INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        bin_code     VARCHAR(50) NOT NULL,
+        description  TEXT,
+        is_active    BOOLEAN DEFAULT TRUE,
+        created_at   TIMESTAMP DEFAULT NOW(),
+        UNIQUE(warehouse_id, bin_code)
+      );
+      CREATE INDEX IF NOT EXISTS idx_warehouse_bins_zone ON src_warehouse_bins(zone_id);
+    `).catch(() => {});
+
+    await client.query(`
+      -- Transfer approval requests
+      CREATE TABLE IF NOT EXISTS src_erp_transfer_requests (
+        id                SERIAL PRIMARY KEY,
+        business_id       INTEGER REFERENCES src_businesses(id) ON DELETE CASCADE,
+        inventory_item_id INTEGER REFERENCES src_erp_inventory_items(id) ON DELETE CASCADE,
+        from_warehouse_id INTEGER REFERENCES src_warehouses(id) ON DELETE SET NULL,
+        to_warehouse_id   INTEGER REFERENCES src_warehouses(id) ON DELETE SET NULL,
+        quantity          INTEGER NOT NULL,
+        notes             TEXT,
+        status            VARCHAR(30) DEFAULT 'pending_approval',
+        requested_by      INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        approved_by       INTEGER REFERENCES src_users(id) ON DELETE SET NULL,
+        approved_at       TIMESTAMP,
+        created_at        TIMESTAMP DEFAULT NOW(),
+        updated_at        TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_transfer_requests_business ON src_erp_transfer_requests(business_id, status);
+    `).catch(() => {});
+
+    // Add zone/bin columns to inventory items
+    await client.query(`
+      ALTER TABLE src_erp_inventory_items
+        ADD COLUMN IF NOT EXISTS zone_id INTEGER REFERENCES src_warehouse_zones(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS bin_id  INTEGER REFERENCES src_warehouse_bins(id)  ON DELETE SET NULL;
+    `).catch(() => {});
+
+    // Add session_id to sales
+    await client.query(`
+      ALTER TABLE src_erp_sales
+        ADD COLUMN IF NOT EXISTS session_id INTEGER REFERENCES src_erp_pos_sessions(id) ON DELETE SET NULL;
+    `).catch(() => {});
+
+    // Seed approve_transfers permission
+    await client.query(`
+      INSERT INTO src_permissions (name, description, group_name)
+      VALUES ('erp.approve_transfers', 'Approve or reject warehouse transfer requests', 'ERP')
+      ON CONFLICT (name) DO NOTHING;
+
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'warehouse_manager', p.id FROM src_permissions p
+        WHERE p.name = 'erp.approve_transfers'
+      ON CONFLICT DO NOTHING;
+
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'store_admin', p.id FROM src_permissions p
+        WHERE p.name = 'erp.approve_transfers'
+      ON CONFLICT DO NOTHING;
+
+      INSERT INTO src_role_permissions (role, permission_id)
+        SELECT 'business_owner', p.id FROM src_permissions p
+        WHERE p.name = 'erp.approve_transfers'
+      ON CONFLICT DO NOTHING;
+    `).catch(() => {});
+
+    console.log('✅ Phase 2 schema extensions applied');
   } finally {
     client.release();
   }

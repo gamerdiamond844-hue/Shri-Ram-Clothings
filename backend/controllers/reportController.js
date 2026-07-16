@@ -26,54 +26,62 @@ const salesReport = async (req, res) => {
     const range = buildDateRange(req.query, 's', 'created_at', 2);
     const useCustomRange = !!range.clause;
 
-    const summaryQuery = [
-      `SELECT COUNT(*) AS orders, COALESCE(SUM(total),0) AS revenue
-         FROM src_erp_sales s
-        WHERE ($1::int IS NULL OR s.business_id = $1)
-          AND s.status = 'completed'`,
-    ];
-    const trendQuery = [
-      `SELECT to_char(s.created_at::date,'YYYY-MM-DD') AS day,
-              COUNT(*) AS bills,
-              COALESCE(SUM(s.total),0) AS revenue
-         FROM src_erp_sales s
-        WHERE ($1::int IS NULL OR s.business_id = $1)
-          AND s.status = 'completed'`,
-    ];
-    const paymentsQuery = [
-      `SELECT COALESCE(s.payment_method,'unknown') AS payment_method,
-              COALESCE(SUM(s.total),0) AS amount
-         FROM src_erp_sales s
-        WHERE ($1::int IS NULL OR s.business_id = $1)
-          AND s.status = 'completed'`,
-    ];
-
     const params = [businessId];
+    let dateFilter = '';
     if (useCustomRange) {
-      summaryQuery.push(`AND ${range.clause}`);
-      trendQuery.push(`AND ${range.clause}`);
-      paymentsQuery.push(`AND ${range.clause}`);
+      dateFilter = `AND ${range.clause}`;
       params.push(...range.values);
     } else {
       const days = parseDays(req.query);
-      summaryQuery.push(`AND s.created_at >= NOW() - ($2::int || ' days')::interval`);
-      trendQuery.push(`AND s.created_at >= NOW() - ($2::int || ' days')::interval`);
-      paymentsQuery.push(`AND s.created_at >= NOW() - ($2::int || ' days')::interval`);
+      dateFilter = `AND s.created_at >= NOW() - ($2::int || ' days')::interval`;
       params.push(days);
     }
 
-    summaryQuery.push('');
-    trendQuery.push('GROUP BY day ORDER BY day ASC LIMIT 31');
-    paymentsQuery.push('GROUP BY payment_method ORDER BY amount DESC');
+    const baseWhere = `($1::int IS NULL OR s.business_id = $1) AND s.status = 'completed' ${dateFilter}`;
 
-    const summaryRes = await pool.query(summaryQuery.join(' '), params);
-    const trendRes = await pool.query(trendQuery.join(' '), params);
-    const paymentsRes = await pool.query(paymentsQuery.join(' '), params);
+    const [summaryRes, trendRes, paymentsRes] = await Promise.all([
+      pool.query(
+        `SELECT
+           COUNT(*) AS total_bills,
+           COALESCE(SUM(s.total),0) AS total_sales,
+           COALESCE(AVG(s.total),0) AS avg_bill_value,
+           COALESCE(SUM(s.tax_amount),0) AS total_tax,
+           COALESCE(SUM(s.discount_amount),0) AS total_discount
+         FROM src_erp_sales s
+         WHERE ${baseWhere}`,
+        params
+      ),
+      pool.query(
+        `SELECT to_char(s.created_at::date,'YYYY-MM-DD') AS date,
+                COUNT(*) AS bills,
+                COALESCE(SUM(s.total),0) AS total
+         FROM src_erp_sales s
+         WHERE ${baseWhere}
+         GROUP BY date ORDER BY date ASC LIMIT 31`,
+        params
+      ),
+      pool.query(
+        `SELECT COALESCE(s.payment_method,'unknown') AS method,
+                COUNT(*) AS bills,
+                COALESCE(SUM(s.total),0) AS total
+         FROM src_erp_sales s
+         WHERE ${baseWhere}
+         GROUP BY method ORDER BY total DESC`,
+        params
+      ),
+    ]);
 
+    const s = summaryRes.rows[0] || {};
     return res.json({
-      summary: summaryRes.rows[0] || { orders: 0, revenue: 0 },
-      trend: trendRes.rows || [],
-      payments: paymentsRes.rows || [],
+      summary: {
+        total_sales: Number(s.total_sales || 0),
+        total_bills: Number(s.total_bills || 0),
+        avg_bill_value: Number(s.avg_bill_value || 0),
+        total_tax: Number(s.total_tax || 0),
+        total_discount: Number(s.total_discount || 0),
+      },
+      daily_trend: trendRes.rows.map(r => ({ date: r.date, total: Number(r.total), bills: Number(r.bills) })),
+      payment_method_breakdown: paymentsRes.rows.map(r => ({ method: r.method, bills: Number(r.bills), total: Number(r.total) })),
     });
   } catch (err) {
     console.error('salesReport error:', err.message);
@@ -84,6 +92,16 @@ const salesReport = async (req, res) => {
 const gstReport = async (req, res) => {
   try {
     const businessId = getScopedBusinessId(req);
+    const range = buildDateRange(req.query, 's', 'created_at', 2);
+    const params = [businessId];
+    let dateFilter = '';
+    if (range.clause) {
+      dateFilter = `AND ${range.clause}`;
+      params.push(...range.values);
+    } else {
+      dateFilter = `AND s.created_at >= NOW() - ($2::int || ' days')::interval`;
+      params.push(parseDays(req.query));
+    }
     const result = await pool.query(
       `SELECT COALESCE(si.hsn_code,'') AS hsn_code,
               COALESCE(si.gst_rate,0) AS gst_rate,
@@ -98,11 +116,11 @@ const gstReport = async (req, res) => {
          JOIN src_erp_sales s ON s.id = si.sale_id
         WHERE ($1::int IS NULL OR s.business_id = $1)
           AND s.status = 'completed'
-          AND s.created_at >= NOW() - INTERVAL '90 days'
+          ${dateFilter}
         GROUP BY hsn_code, gst_rate
         ORDER BY total_gst DESC
         LIMIT 200`,
-      [businessId]
+      params
     );
     return res.json({ gst_summary: result.rows || [] });
   } catch (err) {

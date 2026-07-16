@@ -36,9 +36,21 @@ router.post('/stores', ...settingsGuard, erp.createStore);
 router.put('/stores/:id', ...settingsGuard, erp.updateStore);
 router.delete('/stores/:id', ...settingsGuard, erp.deleteStore);
 
+// Business Management (super_admin only)
 router.get('/businesses', ...superAdminGuard, erp.listBusinesses);
+router.post('/businesses', ...superAdminGuard, erp.createBusiness);
+router.put('/businesses/:id', ...superAdminGuard, erp.updateBusiness);
+router.delete('/businesses/:id', ...superAdminGuard, erp.deleteBusiness);
+router.patch('/businesses/:id/suspend', ...superAdminGuard, erp.suspendBusiness);
+
+// Warehouse Management
+router.get('/warehouses', ...adminGuard, erp.listWarehouses);
+router.post('/warehouses', ...settingsGuard, erp.createWarehouse);
+router.put('/warehouses/:id', ...settingsGuard, erp.updateWarehouse);
+router.delete('/warehouses/:id', ...settingsGuard, erp.deleteWarehouse);
+
+// Store listing (accessible to settings guard)
 router.get('/stores', ...settingsGuard, erp.listStores);
-router.get('/warehouses', ...superAdminGuard, erp.listWarehouses);
 
 router.get('/domains', ...superAdminGuard, domainCtrl.listDomains);
 router.post('/domains', ...superAdminGuard, domainCtrl.createDomain);

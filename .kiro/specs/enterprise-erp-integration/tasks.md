@@ -168,7 +168,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 12_
   - _Dependencies: 16_
 
-- [ ] 18. Sales Orders module — backend
+- [x] 18. Sales Orders module — backend
   - Add `listSales`, `getSale`, `voidSale`, `issueCreditNote`, `exportSales` to a new `backend/controllers/salesOrderController.js`
   - `voidSale`: check status ≠ `void` (HTTP 409 if already void), update `status = 'void'`, insert `return` inventory movements for each line item, create `Audit_Log` entry — all in one DB transaction
   - `issueCreditNote`: increment `customer.store_credit` by credit note amount, record in customer statement, call `logAudit`
@@ -177,7 +177,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 10_
   - _Dependencies: 1, 2_
 
-- [ ] 19. Sales Orders module — frontend (`AdminSalesOrders.jsx`)
+- [x] 19. Sales Orders module — frontend (`AdminSalesOrders.jsx`)
   - Create `frontend/src/pages/admin/erp/AdminSalesOrders.jsx`
   - Paginated sales list filterable by date range, payment method, status (completed / void / returned), and cashier
   - Row actions: View, Reprint Invoice (renders `InvoicePrint.jsx` and calls `window.print()`), Void Sale (with confirmation dialog), Issue Credit Note
@@ -186,7 +186,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 10_
   - _Dependencies: 18, 24_
 
-- [-] 20. Employees — backend and frontend
+- [x] 20. Employees — backend and frontend
   - Create `backend/controllers/employeeController.js` with `listEmployees`, `createEmployee`, `updateEmployee`
   - `createEmployee`: insert into `src_users` with assigned role + store/warehouse IDs; seed default permission rows for that role into `src_role_permissions`
   - Create `backend/routes/employees.js` with `employeeGuard` (auth + requirePermission erp.manage_users)
@@ -194,7 +194,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 14_
   - _Dependencies: 1_
 
-- [ ] 21. Attendance — backend and frontend
+- [x] 21. Attendance — backend and frontend
   - Create `backend/controllers/attendanceController.js` with `getMonthlyGrid`, `markAttendance`, `exportAttendance`
   - `markAttendance`: upsert on `(employee_id, attendance_date)` unique constraint
   - `exportAttendance`: monthly Excel export
@@ -203,7 +203,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 14_
   - _Dependencies: 1, 20_
 
-- [-] 22. Expenses — backend and frontend
+- [x] 22. Expenses — backend and frontend
   - Create `backend/controllers/expenseController.js` with `listExpenses`, `createExpense`, `updateExpense`, `deleteExpense`, `exportExpenses`
   - `createExpense`: validate amount > 0 (HTTP 422 otherwise), insert, call `logAudit`
   - `exportExpenses`: Excel download
@@ -212,7 +212,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 15_
   - _Dependencies: 1_
 
-- [-] 23. Barcode Engine — frontend (`BarcodeEngine.jsx`)
+- [x] 23. Barcode Engine — frontend (`BarcodeEngine.jsx`)
   - Create `frontend/src/pages/admin/erp/BarcodeEngine.jsx` as a standalone ERP module
   - Barcode format selector: EAN13, EAN8, UPC-A, Code128, QR Code
   - EAN13 check-digit computation inline (no npm barcode library); Code128 encoding table inline
@@ -223,7 +223,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 6_
   - _Dependencies: 4_
 
-- [ ] 24. Invoice print system (`InvoicePrint.jsx`)
+- [x] 24. Invoice print system (`InvoicePrint.jsx`)
   - Create `frontend/src/pages/admin/erp/InvoicePrint.jsx` as a reusable print-ready invoice renderer
   - Props: `layout` (58mm / 80mm / A4), `sale` object, `items` array, `business` profile
   - Renders: logo, business name/GST/address, bill number, date, cashier, item table (description, qty, rate, GST, total), subtotal, tax, discount, total, payment method breakdown, UPI QR (inline SVG)
@@ -233,7 +233,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 13_
   - _Dependencies: 3_
 
-- [ ] 25. Invoice Designer — backend and frontend (`InvoiceDesigner.jsx`)
+- [x] 25. Invoice Designer — backend and frontend (`InvoiceDesigner.jsx`)
   - Extend `backend/controllers/erpController.js` with `getInvoiceLayout` and `saveInvoiceLayout`
   - `saveInvoiceLayout`: persist layout JSON to `src_businesses.settings.invoice_layout`; validate required fields; call `logAudit`
   - Add `GET /settings/invoice-layout` and `PUT /settings/invoice-layout` to `backend/routes/erp.js` behind `settingsGuard`
@@ -246,7 +246,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 13_
   - _Dependencies: 24_
 
-- [ ] 26. ERP Settings — backend extension and frontend (`AdminSettings.jsx`)
+- [x] 26. ERP Settings — backend extension and frontend (`AdminSettings.jsx`)
   - Extend `backend/controllers/erpController.js` with `updateBusinessSettings`; updates `src_businesses` + `settings` JSONB for logo URL, loyalty rate, UPI IDs, invoice layout
   - Add `PUT /settings/business` to `backend/routes/erp.js` behind `settingsGuard`
   - Create `frontend/src/pages/admin/erp/AdminSettings.jsx` with tabs:
@@ -260,7 +260,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 16_
   - _Dependencies: 1_
 
-- [ ] 27. Role management — backend and frontend (`AdminRoleManagement.jsx`)
+- [x] 27. Role management — backend and frontend (`AdminRoleManagement.jsx`)
   - Create `backend/controllers/roleController.js` with `listRolePermissions`, `updateRolePermissions`, `listAllPermissions`
   - `updateRolePermissions`: delete existing + insert new rows in single transaction; call `logAudit`
   - Create `backend/routes/roles.js` with `roleGuard` (auth + requireRole super_admin / business_owner / store_admin)
@@ -268,7 +268,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 2_
   - _Dependencies: 1_
 
-- [ ] 28. Audit Logs module — backend and frontend (`AdminAuditLogs.jsx`)
+- [x] 28. Audit Logs module — backend and frontend (`AdminAuditLogs.jsx`)
   - Add `listAuditLogs`, `exportAuditLogs` to `backend/controllers/erpController.js`
   - `listAuditLogs`: paginated query on `src_activity_logs` with filters: actor, action type, date range, target type — all scoped to `business_id` unless `super_admin`
   - Ensure no `UPDATE` or `DELETE` endpoint exists for `src_activity_logs`; any such attempt returns HTTP 405
@@ -282,7 +282,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 17_
   - _Dependencies: 1_
 
-- [ ] 29. Super Admin — backend extension and frontend (`AdminSuperAdmin.jsx`)
+- [x] 29. Super Admin — backend extension and frontend (`AdminSuperAdmin.jsx`)
   - Extend `backend/controllers/erpController.js` with `createBusiness`, `updateBusiness`, `createStore`, `updateStore`, `createWarehouse`, `updateWarehouse`, `listDomains`, `createDomain`, `updateDomain`, `deleteDomain`
   - `updateBusiness` toggles `is_active`; auth middleware returns HTTP 403 "Business account is inactive" when `is_active = false`
   - `globalRevenueSummary`: aggregate sales across all businesses for current and previous month
@@ -297,7 +297,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 3, 20_
   - _Dependencies: 1_
 
-- [ ] 30. Security hardening
+- [x] 30. Security hardening
   - Apply rate limiting middleware to all `/api/auth/*` routes: max 20 requests per IP per minute; return HTTP 429 on breach
   - Add input sanitization middleware for all ERP write endpoints: reject inputs exceeding column max length or containing null bytes with HTTP 422
   - Verify CORS `allowedOrigins` is read from `FRONTEND_URL` env var and all unlisted origins are rejected in production
@@ -306,7 +306,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 18_
   - _Dependencies: 2, 4, 8, 10, 12, 14, 16, 18, 20, 22_
 
-- [ ] 31. Wire all new routes into `server.js`
+- [x] 31. Wire all new routes into `server.js`
   - Mount `/api/erp/pos` → `routes/pos.js`
   - Mount `/api/erp/inventory` → `routes/inventory.js`
   - Mount `/api/erp/customers` → `routes/customers.js`
@@ -322,7 +322,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 21_
   - _Dependencies: 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 21, 22, 27_
 
-- [ ] 32. Wire all new frontend components into `AdminDashboard.jsx`
+- [x] 32. Wire all new frontend components into `AdminDashboard.jsx`
   - Add React `lazy` imports for all new ERP components at top of `AdminDashboard.jsx`
   - Add `case` entries in `renderSection` for: `pos`, `inventory`, `warehouse`, `customers`, `suppliers`, `purchases`, `returns`, `reports`, `sales-orders`, `employees`, `attendance`, `expenses`, `settings`, `invoice-designer`, `barcode-engine`, `role-management`, `audit-logs`, `super-admin`
   - Wrap `renderSection` output in `<Suspense fallback={<Loader />}>` if not already done
@@ -330,7 +330,7 @@ Build a complete Enterprise Retail ERP integrated directly inside the existing S
   - _Requirements: 1, 21_
   - _Dependencies: 3, 5, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29_
 
-- [ ] 33. Enhanced ERP Dashboard KPIs (`AdminOverview.jsx`)
+- [x] 33. Enhanced ERP Dashboard KPIs (`AdminOverview.jsx`)
   - Extend `AdminOverview.jsx` to call `/api/erp/dashboard` and display ERP KPIs alongside existing commerce KPIs: bills today, active cashiers, inventory value, low stock count, held bills, profit estimate, pending payments, active products
   - Add inline SVG `BarChart` for 7-day daily sales trend (reuse or extract existing component from `AdminOverview.jsx`)
   - Add payment method distribution bar for the current month

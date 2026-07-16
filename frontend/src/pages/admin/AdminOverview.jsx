@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { IndianRupee, ShoppingBag, Users, Package, TrendingUp, TrendingDown, Download, RefreshCw, Calendar, Cloud } from 'lucide-react';
+import { IndianRupee, ShoppingBag, Users, Package, TrendingUp, TrendingDown, Download, RefreshCw, Calendar, Cloud, ScanLine, Boxes, AlertTriangle, Wallet, BarChart3, ArrowRightLeft } from 'lucide-react';
 import api, { downloadFile } from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -111,6 +111,7 @@ export default function AdminOverview({ onOpenCloud }) {
   const [customEnd, setCustomEnd] = useState('');
   const [showCustom, setShowCustom] = useState(false);
   const [exporting, setExporting] = useState('');
+  const [erpData, setErpData] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -120,8 +121,12 @@ export default function AdminOverview({ onOpenCloud }) {
         p.set('start', customStart);
         p.set('end', customEnd);
       }
-      const res = await api.get(`/admin/analytics?${p}`);
-      setData(res.data);
+      const [analyticsRes, erpRes] = await Promise.allSettled([
+        api.get(`/admin/analytics?${p}`),
+        api.get('/erp/dashboard'),
+      ]);
+      if (analyticsRes.status === 'fulfilled') setData(analyticsRes.value.data);
+      if (erpRes.status === 'fulfilled') setErpData(erpRes.value.data);
     } catch { toast.error('Failed to load analytics'); }
     finally { setLoading(false); }
   }, [period, customStart, customEnd]);
@@ -244,7 +249,132 @@ export default function AdminOverview({ onOpenCloud }) {
         </div>
       )}
 
-      <div style={{ marginTop: 20, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+      {/* ── ERP Live KPIs ── */}
+      {erpData?.kpis && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>ERP — Live Store Intelligence</div>
+            <button onClick={load} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#f97316', background: '#fff7ed', border: 'none', cursor: 'pointer', padding: '5px 12px', borderRadius: 8 }}>
+              <RefreshCw size={12} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} /> Refresh ERP
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(148px, 1fr))', gap: 12 }}>
+            {[
+              { icon: ScanLine,      label: 'Bills Today',      value: erpData.kpis.bills_today,      color: '#f97316', bg: '#fff7ed', money: false },
+              { icon: IndianRupee,   label: 'POS Sales Today',  value: erpData.kpis.today_sales,       color: '#10b981', bg: '#f0fdf4', money: true  },
+              { icon: Boxes,         label: 'Inventory Value',  value: erpData.kpis.inventory_value,   color: '#3b82f6', bg: '#eff6ff', money: true  },
+              { icon: AlertTriangle, label: 'Low Stock Items',  value: erpData.kpis.low_stock_count,   color: '#f59e0b', bg: '#fef9c3', money: false },
+              { icon: ScanLine,      label: 'Held Bills',       value: erpData.kpis.held_bills,        color: '#8b5cf6', bg: '#f5f3ff', money: false },
+              { icon: IndianRupee,   label: 'Profit Estimate',  value: erpData.kpis.profit_estimate,   color: '#22c55e', bg: '#f0fdf4', money: true  },
+              { icon: Wallet,        label: 'Pending Payments', value: erpData.kpis.pending_payments,  color: '#ef4444', bg: '#fef2f2', money: false },
+              { icon: Package,       label: 'Active Products',  value: erpData.kpis.active_products,   color: '#6b7280', bg: '#f3f4f6', money: false },
+            ].map(card => {
+              const Icon = card.icon;
+              const display = card.money
+                ? `₹${Number(card.value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+                : `${Number(card.value || 0).toLocaleString('en-IN')}`;
+              return (
+                <div key={card.label} style={{ background: '#fff', borderRadius: 12, border: '1px solid #f3f4f6', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: card.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={15} color={card.color} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: '#111827', lineHeight: 1 }}>{display}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 3 }}>{card.label}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Recent inventory movements */}
+          {erpData.recent_movements?.length > 0 && (
+            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13, fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ArrowRightLeft size={13} color="#f97316" /> Recent Inventory Movements
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: '#f9fafb' }}>
+                      {['Item', 'Type', 'Qty', 'Balance', 'Time'].map(h => (
+                        <th key={h} style={{ textAlign: 'left', padding: '7px 14px', fontSize: 10, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {erpData.recent_movements.slice(0, 6).map((mv, i) => {
+                      const typeColors = { sale: '#dc2626', purchase: '#16a34a', return: '#2563eb', adjustment: '#d97706', damage: '#7c3aed', transfer_in: '#0891b2', transfer_out: '#c2410c', count: '#374151' };
+                      const c = typeColors[mv.movement_type] || '#374151';
+                      return (
+                        <tr key={i} style={{ borderTop: '1px solid #f9fafb' }}>
+                          <td style={{ padding: '8px 14px', fontWeight: 600, color: '#111827', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mv.title}</td>
+                          <td style={{ padding: '8px 14px' }}>
+                            <span style={{ background: `${c}18`, color: c, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 6, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                              {mv.movement_type?.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 14px', fontWeight: 700, color: mv.quantity >= 0 ? '#16a34a' : '#dc2626', whiteSpace: 'nowrap' }}>{mv.quantity > 0 ? '+' : ''}{mv.quantity}</td>
+                          <td style={{ padding: '8px 14px', color: '#374151' }}>{mv.balance_after}</td>
+                          <td style={{ padding: '8px 14px', color: '#9ca3af', fontSize: 11, whiteSpace: 'nowrap' }}>
+                            {mv.created_at ? new Date(mv.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Top 5 ERP customers + top 5 ERP products */}
+          {(erpData.top_customers?.length > 0 || erpData.top_products?.length > 0) && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+              {erpData.top_customers?.length > 0 && (
+                <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13, fontWeight: 700, color: '#111827' }}>Top Customers (ERP)</div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <tbody>
+                      {erpData.top_customers.slice(0, 5).map((c, i) => (
+                        <tr key={i} style={{ borderTop: i > 0 ? '1px solid #f9fafb' : 'none' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <td style={{ padding: '9px 14px', color: '#9ca3af', fontWeight: 700, width: 28 }}>{i + 1}</td>
+                          <td style={{ padding: '9px 14px', fontWeight: 600, color: '#111827' }}>{c.name}</td>
+                          <td style={{ padding: '9px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{c.bills} bills</td>
+                          <td style={{ padding: '9px 14px', fontWeight: 700, color: '#f97316', whiteSpace: 'nowrap' }}>₹{Number(c.revenue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {erpData.top_products?.length > 0 && (
+                <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #f3f4f6', fontSize: 13, fontWeight: 700, color: '#111827' }}>Top Products (ERP)</div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <tbody>
+                      {erpData.top_products.slice(0, 5).map((p, i) => (
+                        <tr key={i} style={{ borderTop: i > 0 ? '1px solid #f9fafb' : 'none' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <td style={{ padding: '9px 14px', color: '#9ca3af', fontWeight: 700, width: 28 }}>{i + 1}</td>
+                          <td style={{ padding: '9px 14px', fontWeight: 600, color: '#111827', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</td>
+                          <td style={{ padding: '9px 14px', color: '#6b7280', whiteSpace: 'nowrap' }}>{p.quantity_sold} units</td>
+                          <td style={{ padding: '9px 14px', fontWeight: 700, color: '#f97316', whiteSpace: 'nowrap' }}>₹{Number(p.revenue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 280px', background: '#fff', borderRadius: 18, border: '1px solid #f3f4f6', padding: '18px 20px', minWidth: 280 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
             <Cloud size={18} color="#f97316" />

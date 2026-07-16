@@ -330,4 +330,30 @@ const updateEmployee = async (req, res) => {
   }
 };
 
-module.exports = { listEmployees, createEmployee, updateEmployee };
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE /api/erp/employees/:id
+// Soft-ban or hard-delete an employee scoped to business_id
+// ─────────────────────────────────────────────────────────────────────────────
+const deleteEmployee = async (req, res) => {
+  try {
+    const businessId = getScopedBusinessId(req);
+    if (!businessId) return res.status(400).json({ message: 'Business context required' });
+    const { id } = req.params;
+    const existing = await pool.query(
+      'SELECT id, role FROM src_users WHERE id = $1 AND business_id = $2',
+      [id, businessId]
+    );
+    if (!existing.rows.length) return res.status(404).json({ message: 'Employee not found' });
+    if (existing.rows[0].role === 'super_admin') {
+      return res.status(403).json({ message: 'Cannot delete super admin' });
+    }
+    await pool.query('DELETE FROM src_users WHERE id = $1 AND business_id = $2', [id, businessId]);
+    await logAudit(pool, { adminId: req.user?.id, action: 'delete_employee', targetType: 'user', targetId: id });
+    return res.json({ message: 'Employee deleted' });
+  } catch (err) {
+    console.error('deleteEmployee error:', err.message);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { listEmployees, createEmployee, updateEmployee, deleteEmployee };

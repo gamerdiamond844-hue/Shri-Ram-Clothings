@@ -54,6 +54,18 @@ const login = async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password || '')))
       return res.status(401).json({ message: 'Invalid credentials' });
     if (user.is_banned) return res.status(403).json({ message: 'Account has been banned' });
+
+    // Track login session
+    try {
+      const ua = req.headers['user-agent'] || '';
+      const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '';
+      await pool.query(
+        `INSERT INTO src_login_sessions (user_id, ip_address, user_agent, logged_in_at, is_active)
+         VALUES ($1, $2, $3, NOW(), TRUE)`,
+        [user.id, ip.slice(0, 60), ua.slice(0, 500)]
+      );
+    } catch { /* never block login on session tracking failure */ }
+
     const { password: _, ...safeUser } = user;
     res.json({ token: signToken(user), user: await enrichUser(safeUser) });
   } catch (err) {
