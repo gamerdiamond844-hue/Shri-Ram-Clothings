@@ -380,3 +380,199 @@ module.exports = {
   resumeHold,
   deleteHold,
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POS SHIFT MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/erp/pos/shift/active
+const getActiveShift = async (req, res) => {
+  try {
+    const business_id = getScopedBusinessId(req);
+    if (!business_id) return res.status(400).json({ message: 'Business context required' });
+
+    const result = await pool.query(
+      `SELECT s.*, u.name AS cashier_name
+       FROM src_erp_pos_sessions s
+       LEFT JOIN src_users u ON u.id = s.cashier_id
+       WHERE s.business_id = $1
+         AND s.cashier_id = $2
+         AND s.status = 'open'
+       ORDER BY s.opened_at DESC
+       LIMIT 1`,
+      [business_id, req.user.id]
+    );
+
+    if (!result.rows.length) {
+      return res.json({ session: null });
+    }
+
+    // Add running total for this session
+    const session = result.rows[0];
+    const salesResult = await pool.query(
+      `SELECT COUNT(*) AS bill_count, COALESCE(SUM(total), 0) AS running_total
+       FROM src_erp_sales
+       WHERE session_id = $1 AND status = 'completed'`,
+      [session.id]
+    );
+    session.bill_count = parseInt(salesResult.rows[0].bill_count);
+    session.running_total = parseFloat(salesResult.rows[0].running_total);
+
+    return res.json({ session });
+  } catch (err) {
+    console.error('getActiveShift error:', err.message);
+    return res.status(500).json({ message: 'Failed to get active shift' });
+  }
+};
+
+// POST /api/erp/pos/shift/open
+const openShift = async (req, res) => {
+  try {
+    const business_id = getScopedBusinessId(req);
+    if (!business_id) return res.status(400).json({ message: 'Business context required' });
+
+    const { opening_cash = 0 } = req.body;
+
+    // Check for existing open shift for this cashier
+    const existing = await pool.query(
+      `SELECT id FROM src_erp_pos_sessions
+       WHERE business_id = $1 AND cashier_id = $2 AND status = 'open'
+       LIMIT 1`,
+      [business_id, req.user.id]
+    );
+    if (existing.rows.length) {
+      return res.status(409).json({ message: 'You already have an open shift. Close it first.' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO src_erp_pos_sessions
+         (business_id, store_id, cashier_id, opening_cash, status, opened_at)
+       VALUES ($1, $2, $3, $4, 'open', NOW())
+       RETURNING *`,
+      [business_id, req.user.store_id || null, req.user.id, Number(opening_cash)]
+    );
+
+    await pool.query(
+      `INSERT INTO src_activity_logs (admin_id, action, target_type, target_id, details)
+       VALUES ($1, 'pos.shift_opened', 'pos_session', $2, $3)`,
+      [req.user.id, result.rows[0].id, `Opening cash: ₹${opening_cash}`]
+    );
+
+    return res.status(201).json({ session: result.rows[0] });
+  } catch (err) {
+    console.error('openShift error:', err.message);
+    return res.status(500).json({ message: 'Failed to open shift' });
+  }
+};
+
+// POST /api/erp/pos/shift/close
+const closeShift = async (req, res) => {
+  try {
+    const business_id = getScopedBusinessId(req);
+    if (!business_id) return res.status(400).json({ message: 'Business context required' });
+
+    const { session_id, closing_cash = 0 } = req.body;
+
+    if (!session_id) return res.status(400).json({ message: 'session_id is required' });
+
+    // Verify session belongs to this cashier and business
+    const sessionRes = await pool.query(
+      `SELECT * FROM src_erp_pos_sessions
+       WHERE id = $1 AND business_id = $2 AND cashier_id = $3 AND status = 'open'`,
+      [session_id, business_id, req.user.id]
+    );
+    if (!sessionRes.rows.length) {
+      return res.status(404).json({ message: 'Active shift not found' });
+    }
+    const session = sessionRes.rows[0];
+
+    // Compute total sales for this session
+    const salesRes = await pool.query(
+      `SELECT COUNT(*) AS total_bills,
+              COALESCE(SUM(total), 0) AS total_sales,
+              COALESCE(SUM(total) FILTER (WHERE payment_method = 'cash'), 0) AS cash_sales
+       FROM src_erp_sales
+       WHERE session_id = $1 AND status = 'completed'`,
+      [session_id]
+    );
+    const { total_bills, total_sales, cash_sales } = salesRes.rows[0];
+
+    const expectedCash = parseFloat(session.opening_cash) + parseFloat(cash_sales);
+    const variance = parseFloat(closing_cash) - expectedCash;
+
+    const result = await pool.query(
+      `UPDATE src_erp_pos_sessions
+       SET closing_cash = $1,
+           total_sales  = $2,
+           total_bills  = $3,
+           closed_at    = NOW(),
+           status       = 'closed'
+       WHERE id = $4 AND business_id = $5
+       RETURNING *`,
+      [Number(closing_cash), Number(total_sales), Number(total_bills), session_id, business_id]
+    );
+
+    await pool.query(
+      `INSERT INTO src_activity_logs (admin_id, action, target_type, target_id, details)
+       VALUES ($1, 'pos.shift_closed', 'pos_session', $2, $3)`,
+      [req.user.id, session_id, `Total bills: ${total_bills}, Total sales: ₹${total_sales}, Variance: ₹${variance.toFixed(2)}`]
+    );
+
+    return res.json({
+      session: result.rows[0],
+      reconciliation: {
+        opening_cash: parseFloat(session.opening_cash),
+        cash_sales: parseFloat(cash_sales),
+        expected_cash: expectedCash,
+        actual_cash: parseFloat(closing_cash),
+        variance,
+        total_bills: parseInt(total_bills),
+        total_sales: parseFloat(total_sales),
+      },
+    });
+  } catch (err) {
+    console.error('closeShift error:', err.message);
+    return res.status(500).json({ message: 'Failed to close shift' });
+  }
+};
+
+// GET /api/erp/pos/shifts — paginated shift history for this store
+const listShifts = async (req, res) => {
+  try {
+    const business_id = getScopedBusinessId(req);
+    if (!business_id) return res.status(400).json({ message: 'Business context required' });
+
+    const page  = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, parseInt(req.query.limit) || 20);
+    const offset = (page - 1) * limit;
+
+    const countRes = await pool.query(
+      `SELECT COUNT(*) FROM src_erp_pos_sessions WHERE business_id = $1`,
+      [business_id]
+    );
+    const total = parseInt(countRes.rows[0].count);
+
+    const result = await pool.query(
+      `SELECT s.*, u.name AS cashier_name, u.employee_code
+       FROM src_erp_pos_sessions s
+       LEFT JOIN src_users u ON u.id = s.cashier_id
+       WHERE s.business_id = $1
+       ORDER BY s.opened_at DESC
+       LIMIT $2 OFFSET $3`,
+      [business_id, limit, offset]
+    );
+
+    return res.json({ sessions: result.rows, total, page, limit });
+  } catch (err) {
+    console.error('listShifts error:', err.message);
+    return res.status(500).json({ message: 'Failed to list shifts' });
+  }
+};
+
+// Remove the placeholder comment and export all functions
+Object.assign(module.exports, {
+  getActiveShift,
+  openShift,
+  closeShift,
+  listShifts,
+});

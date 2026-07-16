@@ -12,6 +12,7 @@ import {
   Cloud,
   Cpu,
   Crown,
+  DollarSign,
   Eye,
   FileClock,
   FolderOpen,
@@ -70,6 +71,7 @@ const AdminReturns        = lazy(() => import('./erp/AdminReturns'));
 const AdminReports        = lazy(() => import('./erp/AdminReports'));
 const AdminEmployees      = lazy(() => import('./erp/AdminEmployees'));
 const AdminAttendance     = lazy(() => import('./erp/AdminAttendance'));
+const AdminPayroll        = lazy(() => import('./erp/AdminPayroll'));
 const AdminExpenses       = lazy(() => import('./erp/AdminExpenses'));
 const AdminAuditLogs      = lazy(() => import('./erp/AdminAuditLogs'));
 const BarcodeEngine       = lazy(() => import('./erp/BarcodeEngine'));
@@ -78,6 +80,7 @@ const AdminSettings       = lazy(() => import('./erp/AdminSettings'));
 const AdminStoreManagement = lazy(() => import('./erp/AdminStoreManagement'));
 const AdminRoleManagement = lazy(() => import('./erp/AdminRoleManagement'));
 const AdminSuperAdmin     = lazy(() => import('./erp/AdminSuperAdmin'));
+const InvoiceDesigner     = lazy(() => import('./erp/InvoiceDesigner'));
 const AdminChatSupport    = lazy(() => import('./erp/AdminChatSupport'));
 const AdminPrivateChat    = lazy(() => import('./erp/AdminPrivateChat'));
 const AdminConversationMonitor = lazy(() => import('./erp/AdminConversationMonitor'));
@@ -108,6 +111,7 @@ const iconMap = {
   BarChart3,
   BriefcaseBusiness,
   CalendarClock,
+  DollarSign,
   Wallet,
   Bell,
   Settings,
@@ -120,11 +124,13 @@ const iconMap = {
   Layout,
   MapPinned,
   MessageSquare,
+  MessageCircle,
   Video,
   Phone,
   Star,
   Tag,
   Cloud,
+  Eye,
 };
 
 const cardStyle = {
@@ -174,11 +180,23 @@ export default function AdminDashboard() {
   const [section, setSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarFilter, setSidebarFilter] = useState('');
   const [cloudMetrics, setCloudMetrics] = useState(null);
   const [erpBootstrap, setErpBootstrap] = useState(null);
 
   const visibleGroups = useMemo(() => getVisibleNavGroups(user), [user]);
   const visibleItems = useMemo(() => visibleGroups.flatMap((group) => group.items), [visibleGroups]);
+  const filteredGroups = useMemo(() => {
+    const query = sidebarFilter.trim().toLowerCase();
+    if (!query) return visibleGroups;
+    return visibleGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => item.label.toLowerCase().includes(query)),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [visibleGroups, sidebarFilter]);
+  const totalVisibleFunctions = visibleItems.length;
   const defaultSection = visibleItems.find((item) => item.key === 'dashboard')?.key || visibleItems[0]?.key || 'dashboard';
 
   const handleLogout = () => {
@@ -217,6 +235,8 @@ export default function AdminDashboard() {
         return <AdminEmployees />;
       case 'attendance':
         return <AdminAttendance />;
+      case 'payroll':
+        return <AdminPayroll />;
       case 'expenses':
         return <AdminExpenses />;
       case 'audit-logs':
@@ -246,6 +266,8 @@ export default function AdminDashboard() {
         return <AdminVideoCalls />;
       case 'voice-calls':
         return <AdminVoiceCalls />;
+      case 'invoice-designer':
+        return <InvoiceDesigner />;
       case 'homepage':
         return <AdminHomepage />;
       case 'products':
@@ -328,6 +350,8 @@ export default function AdminDashboard() {
         flexDirection: 'column',
         height: '100%',
         flexShrink: 0,
+        position: 'sticky',
+        top: 0,
       }}
     >
       <div style={{ padding: sidebarCollapsed ? '18px 8px 14px' : '18px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
@@ -345,6 +369,7 @@ export default function AdminDashboard() {
           <button
             onClick={() => setSidebarCollapsed((prev) => !prev)}
             title={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'}
             style={{
               width: 34,
               height: 34,
@@ -364,12 +389,47 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <nav style={{ flex: 1, padding: sidebarCollapsed ? '12px 6px' : '12px 10px', overflowY: 'auto', display: 'grid', gap: 14 }}>
-        {visibleGroups.map((group) => (
-          <div key={group.key} style={{ display: 'grid', gap: 4 }}>
-            <div style={{ display: sidebarCollapsed ? 'none' : 'block', padding: '0 10px 6px', fontSize: 10, color: '#64748b', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 700 }}>
-              {group.label}
+      <div style={{ padding: sidebarCollapsed ? '0 6px' : '12px 14px 0' }}>
+        {!sidebarCollapsed && (
+          <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em' }}>All functions</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{totalVisibleFunctions} items available</div>
+              </div>
             </div>
+            <input
+              value={sidebarFilter}
+              onChange={(event) => setSidebarFilter(event.target.value)}
+              placeholder="Filter functions..."
+              style={{
+                width: '100%',
+                borderRadius: 12,
+                border: '1px solid rgba(148, 163, 184, 0.24)',
+                padding: '10px 12px',
+                background: '#020617',
+                color: '#fff',
+                fontSize: 13,
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      <nav style={{ flex: 1, padding: sidebarCollapsed ? '12px 6px' : '0 10px 10px', overflowY: 'auto', display: 'grid', gap: 14, minHeight: 0 }}>
+        {filteredGroups.length === 0 ? (
+          <div style={{ color: '#94a3b8', fontSize: 13, padding: '12px 10px', borderRadius: 12, background: 'rgba(255,255,255,0.03)' }}>
+            No functions match the filter.
+          </div>
+        ) : filteredGroups.map((group) => (
+          <div key={group.key} style={{ display: 'grid', gap: 4 }}>
+            {!sidebarCollapsed && (
+              <div style={{ padding: '0 10px 6px', fontSize: 10, color: '#64748b', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 700 }}>
+                {group.label}
+              </div>
+            )}
             {group.items.map(({ key, label, icon }) => {
               const Icon = iconMap[icon] || LayoutDashboard;
               const isActive = section === key;
@@ -380,6 +440,8 @@ export default function AdminDashboard() {
                     navigate(key === 'dashboard' ? '/admin/dashboard' : `/admin/${key}`);
                     setSidebarOpen(false);
                   }}
+                  title={label}
+                  aria-label={label}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -395,7 +457,10 @@ export default function AdminDashboard() {
                     width: '100%',
                     background: isActive ? '#f97316' : 'transparent',
                     color: isActive ? '#fff' : '#cbd5e1',
-                    transition: 'all 0.15s',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {

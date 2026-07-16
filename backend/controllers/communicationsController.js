@@ -148,15 +148,20 @@ const listPrivateThreads = async (req, res) => {
   }
 };
 
-const getThreadById = async (threadId) => {
-  const threadRes = await pool.query('SELECT * FROM src_private_chat_threads WHERE id = $1', [threadId]);
+const getThreadById = async (threadId, businessId = null) => {
+  const query = businessId
+    ? 'SELECT * FROM src_private_chat_threads WHERE id = $1 AND business_id = $2'
+    : 'SELECT * FROM src_private_chat_threads WHERE id = $1';
+  const params = businessId ? [threadId, businessId] : [threadId];
+  const threadRes = await pool.query(query, params);
   return threadRes.rows[0] || null;
 };
 
 const listPrivateMessages = async (req, res) => {
   try {
     const { threadId } = req.params;
-    const thread = await getThreadById(threadId);
+    const businessId = getScopedBusinessId(req);
+    const thread = await getThreadById(threadId, businessId);
     if (!thread) return res.status(404).json({ message: 'Thread not found' });
 
     const isParticipant = [thread.user_one_id, thread.user_two_id].includes(req.user.id);
@@ -187,7 +192,8 @@ const sendPrivateMessage = async (req, res) => {
     const { message, attachment_url, message_type = 'text' } = req.body;
     if (!message?.trim() && !attachment_url) return res.status(400).json({ message: 'Message text or attachment required' });
 
-    const thread = await getThreadById(threadId);
+    const businessId = getScopedBusinessId(req);
+    const thread = await getThreadById(threadId, businessId);
     if (!thread) return res.status(404).json({ message: 'Thread not found' });
 
     const isParticipant = [thread.user_one_id, thread.user_two_id].includes(req.user.id);
@@ -360,7 +366,7 @@ const listMeetings = async (req, res) => {
 
 const createMeeting = async (req, res) => {
   try {
-    const businessId = req.user.business_id;
+    const businessId = getScopedBusinessId(req);
     if (!businessId) return res.status(400).json({ message: 'Business context required' });
     const { title, mode, is_audio_only } = req.body;
     if (!title || !mode || !['video', 'voice'].includes(mode)) return res.status(400).json({ message: 'Valid title and mode are required' });

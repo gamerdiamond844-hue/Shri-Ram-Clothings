@@ -203,8 +203,8 @@ const createReturn = async (req, res) => {
     if (allReturned) {
       await client.query(
         `UPDATE src_erp_sales SET status = 'returned', updated_at = NOW()
-         WHERE id = $1`,
-        [original_sale_id]
+         WHERE id = $1 AND business_id = $2`,
+        [original_sale_id, business_id]
       );
     }
 

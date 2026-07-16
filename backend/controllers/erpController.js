@@ -288,8 +288,8 @@ const getBootstrap = async (req, res) => {
         id: req.user.id,
         role: req.user.role,
         permissions: req.user.permissions || [],
-        business_id: req.user.business_id || null,
-        store_id: req.user.store_id || null,
+        business_id: getScopedBusinessId(req),
+        store_id: getScopedStoreId(req) || req.user.store_id || null,
         warehouse_id: req.user.warehouse_id || null,
       },
       navigation: getVisibleModuleGroups(req.user),
@@ -708,15 +708,30 @@ const listStores = async (req, res) => {
   }
 };
 
-const listWarehouses = async (_, res) => {
+const listWarehouses = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT w.id, w.name, w.address, w.phone, w.business_id, w.is_active,
-              b.name AS business_name
-       FROM src_warehouses w
-       LEFT JOIN src_businesses b ON b.id = w.business_id
-       ORDER BY w.created_at DESC`
-    );
+    const isSuperAdmin = req.user?.role === 'super_admin';
+    const businessId = getScopedBusinessId(req);
+    let query, params;
+    if (isSuperAdmin) {
+      query = `SELECT w.id, w.name, w.address, w.phone, w.business_id, w.is_active,
+                      b.name AS business_name
+               FROM src_warehouses w
+               LEFT JOIN src_businesses b ON b.id = w.business_id
+               ORDER BY w.created_at DESC`;
+      params = [];
+    } else if (businessId) {
+      query = `SELECT w.id, w.name, w.address, w.phone, w.business_id, w.is_active,
+                      b.name AS business_name
+               FROM src_warehouses w
+               LEFT JOIN src_businesses b ON b.id = w.business_id
+               WHERE w.business_id = $1
+               ORDER BY w.created_at DESC`;
+      params = [businessId];
+    } else {
+      return res.status(400).json({ message: 'Business context required' });
+    }
+    const result = await pool.query(query, params);
     res.json({ warehouses: result.rows });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -751,8 +766,8 @@ const createWarehouseTransfer = async (req, res) => {
 
     // Lock the inventory row to prevent race conditions
     const itemRes = await client.query(
-      `SELECT id, current_stock, business_id FROM src_erp_inventory_items WHERE id = $1 FOR UPDATE`,
-      [inventory_item_id]
+      `SELECT id, current_stock, business_id FROM src_erp_inventory_items WHERE id = $1 AND business_id = $2 FOR UPDATE`,
+      [inventory_item_id, businessId]
     );
     if (!itemRes.rows.length) {
       await client.query('ROLLBACK');
@@ -771,8 +786,8 @@ const createWarehouseTransfer = async (req, res) => {
 
     // Update current_stock on the item
     await client.query(
-      `UPDATE src_erp_inventory_items SET current_stock = $1, updated_at = NOW() WHERE id = $2`,
-      [newStock, inventory_item_id]
+      `UPDATE src_erp_inventory_items SET current_stock = $1, updated_at = NOW() WHERE id = $2 AND business_id = $3`,
+      [newStock, inventory_item_id, businessId]
     );
 
     // Insert transfer_out movement
@@ -833,8 +848,8 @@ const recordDamage = async (req, res) => {
     await client.query('BEGIN');
 
     const itemRes = await client.query(
-      `SELECT id, current_stock FROM src_erp_inventory_items WHERE id = $1 FOR UPDATE`,
-      [inventory_item_id]
+      `SELECT id, current_stock FROM src_erp_inventory_items WHERE id = $1 AND business_id = $2 FOR UPDATE`,
+      [inventory_item_id, businessId]
     );
     if (!itemRes.rows.length) {
       await client.query('ROLLBACK');
@@ -846,8 +861,8 @@ const recordDamage = async (req, res) => {
 
     // Update current_stock (allow going below 0 per business logic)
     await client.query(
-      `UPDATE src_erp_inventory_items SET current_stock = $1, updated_at = NOW() WHERE id = $2`,
-      [newStock, inventory_item_id]
+      `UPDATE src_erp_inventory_items SET current_stock = $1, updated_at = NOW() WHERE id = $2 AND business_id = $3`,
+      [newStock, inventory_item_id, businessId]
     );
 
     // Insert damage movement with negative quantity
@@ -905,8 +920,8 @@ const recordStockCount = async (req, res) => {
     await client.query('BEGIN');
 
     const itemRes = await client.query(
-      `SELECT id, current_stock FROM src_erp_inventory_items WHERE id = $1 FOR UPDATE`,
-      [inventory_item_id]
+      `SELECT id, current_stock FROM src_erp_inventory_items WHERE id = $1 AND business_id = $2 FOR UPDATE`,
+      [inventory_item_id, businessId]
     );
     if (!itemRes.rows.length) {
       await client.query('ROLLBACK');
@@ -918,8 +933,8 @@ const recordStockCount = async (req, res) => {
 
     // Set current_stock to the counted value
     await client.query(
-      `UPDATE src_erp_inventory_items SET current_stock = $1, updated_at = NOW() WHERE id = $2`,
-      [countedQty, inventory_item_id]
+      `UPDATE src_erp_inventory_items SET current_stock = $1, updated_at = NOW() WHERE id = $2 AND business_id = $3`,
+      [countedQty, inventory_item_id, businessId]
     );
 
     // Insert count movement with delta quantity
@@ -1230,7 +1245,7 @@ const updateStore = async (req, res) => {
     const businessId = getScopedBusinessId(req);
     if (!businessId) return res.status(400).json({ message: 'Business context required' });
 
-    const { name, store_code, address, phone, email, is_active } = req.body;
+    const { name, store_code, address, phone, email, is_active, gst_number, city, state, pincode, currency, timezone } = req.body;
     const updates = {};
     if (name !== undefined) updates.name = name;
     if (store_code !== undefined) updates.store_code = store_code;
@@ -1238,6 +1253,12 @@ const updateStore = async (req, res) => {
     if (phone !== undefined) updates.phone = phone;
     if (email !== undefined) updates.email = email;
     if (is_active !== undefined) updates.is_active = is_active;
+    if (gst_number !== undefined) updates.gst_number = gst_number;
+    if (city !== undefined) updates.city = city;
+    if (state !== undefined) updates.state = state;
+    if (pincode !== undefined) updates.pincode = pincode;
+    if (currency !== undefined) updates.currency = currency;
+    if (timezone !== undefined) updates.timezone = timezone;
 
     if (!Object.keys(updates).length) {
       const existing = await pool.query(
@@ -1282,6 +1303,122 @@ const deleteStore = async (req, res) => {
   }
 };
 
+// ── Business CRUD ─────────────────────────────────────────────────────────────
+const createBusiness = async (req, res) => {
+  try {
+    const { name, gst_number, phone, email, address, currency = 'INR', timezone = 'Asia/Kolkata' } = req.body;
+    if (!name) return res.status(400).json({ message: 'Business name is required' });
+    const slug = slugify(name) + '-' + Math.floor(1000 + Math.random() * 9000);
+    const result = await pool.query(
+      `INSERT INTO src_businesses (name, slug, gst_number, phone, email, address, currency, timezone, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE) RETURNING *`,
+      [name, slug, gst_number || null, phone || null, email || null, address || null, currency, timezone]
+    );
+    await logAudit(pool, { adminId: req.user?.id, action: 'create_business', targetType: 'business', targetId: result.rows[0].id, details: name });
+    res.status(201).json({ business: result.rows[0] });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updateBusiness = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, gst_number, phone, email, address, currency, timezone, is_active } = req.body;
+    const fields = [];
+    const values = [];
+    let idx = 1;
+    if (name !== undefined) { fields.push(`name=$${idx++}`); values.push(name); }
+    if (gst_number !== undefined) { fields.push(`gst_number=$${idx++}`); values.push(gst_number); }
+    if (phone !== undefined) { fields.push(`phone=$${idx++}`); values.push(phone); }
+    if (email !== undefined) { fields.push(`email=$${idx++}`); values.push(email); }
+    if (address !== undefined) { fields.push(`address=$${idx++}`); values.push(address); }
+    if (currency !== undefined) { fields.push(`currency=$${idx++}`); values.push(currency); }
+    if (timezone !== undefined) { fields.push(`timezone=$${idx++}`); values.push(timezone); }
+    if (is_active !== undefined) { fields.push(`is_active=$${idx++}`); values.push(is_active); }
+    if (!fields.length) return res.status(400).json({ message: 'No fields to update' });
+    fields.push(`updated_at=NOW()`);
+    values.push(id);
+    const result = await pool.query(`UPDATE src_businesses SET ${fields.join(',')} WHERE id=$${idx} RETURNING *`, values);
+    if (!result.rows.length) return res.status(404).json({ message: 'Business not found' });
+    await logAudit(pool, { adminId: req.user?.id, action: 'update_business', targetType: 'business', targetId: id });
+    res.json({ business: result.rows[0] });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deleteBusiness = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(`DELETE FROM src_businesses WHERE id=$1 RETURNING *`, [id]);
+    if (!result.rows.length) return res.status(404).json({ message: 'Business not found' });
+    await logAudit(pool, { adminId: req.user?.id, action: 'delete_business', targetType: 'business', targetId: id });
+    res.json({ message: 'Business deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const suspendBusiness = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { suspend } = req.body;
+    const result = await pool.query(`UPDATE src_businesses SET is_active=$1, updated_at=NOW() WHERE id=$2 RETURNING *`, [!suspend, id]);
+    if (!result.rows.length) return res.status(404).json({ message: 'Business not found' });
+    await logAudit(pool, { adminId: req.user?.id, action: suspend ? 'suspend_business' : 'activate_business', targetType: 'business', targetId: id });
+    res.json({ business: result.rows[0] });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+// ── Warehouse CRUD ────────────────────────────────────────────────────────────
+const createWarehouse = async (req, res) => {
+  try {
+    const businessId = await getEffectiveBusinessId(req);
+    if (!businessId) return res.status(400).json({ message: 'Business context required' });
+    const { name, address, phone, manager_id } = req.body;
+    if (!name) return res.status(400).json({ message: 'Warehouse name is required' });
+    const result = await pool.query(
+      `INSERT INTO src_warehouses (business_id, name, address, phone, manager_id, is_active)
+       VALUES ($1, $2, $3, $4, $5, TRUE) RETURNING *`,
+      [businessId, name, address || null, phone || null, manager_id || null]
+    );
+    await logAudit(pool, { adminId: req.user?.id, action: 'create_warehouse', targetType: 'warehouse', targetId: result.rows[0].id, details: name });
+    res.status(201).json({ warehouse: result.rows[0] });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const updateWarehouse = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const businessId = await getEffectiveBusinessId(req);
+    const { name, address, phone, manager_id, is_active } = req.body;
+    const fields = [];
+    const values = [];
+    let idx = 1;
+    if (name !== undefined) { fields.push(`name=$${idx++}`); values.push(name); }
+    if (address !== undefined) { fields.push(`address=$${idx++}`); values.push(address); }
+    if (phone !== undefined) { fields.push(`phone=$${idx++}`); values.push(phone); }
+    if (manager_id !== undefined) { fields.push(`manager_id=$${idx++}`); values.push(manager_id); }
+    if (is_active !== undefined) { fields.push(`is_active=$${idx++}`); values.push(is_active); }
+    if (!fields.length) return res.status(400).json({ message: 'No fields to update' });
+    fields.push(`updated_at=NOW()`);
+    values.push(id);
+    const whereClause = req.user?.role === 'super_admin' ? `WHERE id=$${idx}` : `WHERE id=$${idx} AND business_id=${businessId}`;
+    const result = await pool.query(`UPDATE src_warehouses SET ${fields.join(',')} ${whereClause} RETURNING *`, values);
+    if (!result.rows.length) return res.status(404).json({ message: 'Warehouse not found' });
+    await logAudit(pool, { adminId: req.user?.id, action: 'update_warehouse', targetType: 'warehouse', targetId: id });
+    res.json({ warehouse: result.rows[0] });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
+const deleteWarehouse = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const businessId = await getEffectiveBusinessId(req);
+    const whereClause = req.user?.role === 'super_admin' ? `WHERE id=$1` : `WHERE id=$1 AND business_id=$2`;
+    const params = req.user?.role === 'super_admin' ? [id] : [id, businessId];
+    const result = await pool.query(`DELETE FROM src_warehouses ${whereClause} RETURNING *`, params);
+    if (!result.rows.length) return res.status(404).json({ message: 'Warehouse not found' });
+    await logAudit(pool, { adminId: req.user?.id, action: 'delete_warehouse', targetType: 'warehouse', targetId: id });
+    res.json({ message: 'Warehouse deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+};
+
 module.exports = {
   getDashboard,
   getModules,
@@ -1305,4 +1442,11 @@ module.exports = {
   createWarehouseTransfer,
   recordDamage,
   recordStockCount,
+  createBusiness,
+  updateBusiness,
+  deleteBusiness,
+  suspendBusiness,
+  createWarehouse,
+  updateWarehouse,
+  deleteWarehouse,
 };
